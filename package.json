@@ -35,6 +35,11 @@
         "command": "novellized.openAsLiveView",
         "title": "Novellized: Mở bằng Chế độ Soạn thảo Trực tiếp",
         "icon": "$(book)"
+      },
+      {
+        "command": "novellized.createNewNovel",
+        "title": "Novellized: ✨ Khởi tạo Tác phẩm Mới...",
+        "icon": "$(sparkle)"
       }
     ],
     "menus": {
@@ -50,7 +55,13 @@
           "group": "navigation"
         }
       ]
-    }
+    },
+    "viewsWelcome": [
+      {
+        "view": "explorer",
+        "contents": "Bắt đầu dự án văn học với Novellized.\n[✨ Khởi tạo Tác phẩm Mới](command:novellized.createNewNovel)"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "node esbuild.config.mjs --production",

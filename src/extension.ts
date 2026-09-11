@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { NovellizedEditorProvider } from './NovellizedEditorProvider';
+import { createNewNovelProject } from './projectInit';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
@@ -21,6 +22,13 @@ export function activate(context: vscode.ExtensionContext) {
             if (targetUri) {
                 await vscode.commands.executeCommand('vscode.openWith', targetUri, 'novellized.editor');
             }
+        })
+    );
+
+    // Command to initialize a new novel project structure
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.createNewNovel', async () => {
+            await createNewNovelProject();
         })
     );
 }

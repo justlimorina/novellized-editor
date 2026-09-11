@@ -20,11 +20,24 @@ Trình soạn thảo trực tiếp (WYSIWYG Live Markdown Editor) dành riêng c
   * Bấm nút **"Chế độ Soạn thảo Trực tiếp"** để quay trở lại TipTap bất kỳ lúc nào mà không lo mất dữ liệu hay xung đột buffer.
 * **Bộ đếm Từ & Ký tự Trực tiếp**:
   * Tự động tính toán số từ tiếng Việt và tổng số ký tự theo thời gian thực trên thanh công cụ.
-* **Cấu trúc Thư mục Chuẩn Tác phẩm cho AI Agent**:
-  * Thư mục cấp 1: `01_Hoi_1_...`
-  * Thư mục cấp 2: `Chuong_01_...`
-  * File `.md`: `01_canh_...md`
-  * Thư mục ẩn `.novel/`: Chứa `characters.json` lưu trữ hồ sơ nhân vật và bối cảnh để AI Agent hỗ trợ rà soát mạch truyện.
+* **Khởi Tạo Tác Phẩm Tự Động (Project Wizard)**:
+  * Lệnh `Novellized: ✨ Khởi tạo Tác phẩm Mới...` giúp nhà văn thiết lập cấu trúc tác phẩm chỉ sau 4 câu hỏi.
+  * Tự động sinh sẵn hồ sơ nhân vật, bối cảnh thế giới và dàn ý 3 Hồi.
+* **Cấu trúc Thư mục Chuẩn Tác phẩm Tối ưu cho AI Agent**:
+  ```text
+  [Tên_Tác_Phẩm]/
+  ├── part_01/
+  │   └── chapter_01/
+  │       ├── scene_01.md            <-- Cảnh mở đầu
+  │       └── scene_02.md
+  ├── docs/                          <-- Tài liệu bối cảnh (Người và AI cùng đọc/viết)
+  │   ├── characters.md              <-- Hồ sơ nhân vật (Tâm lý, ngoại hình, động lực)
+  │   ├── worldbuilding.md           <-- Bản đồ thế giới, quy luật, bối cảnh
+  │   └── outline.md                 <-- Dàn ý cốt truyện (Cấu trúc 3 Hồi)
+  └── .novel/                        <-- Chỉ dẫn kỹ thuật & Cấu hình cho AI
+      ├── project.json               <-- Tên tác phẩm, tác giả, mục tiêu số từ, ngày tạo
+      └── ai_rules.json              <-- System instructions cho AI (Ngôi kể, Tone & Voice, cấm kỵ)
+  ```
 
 ---
 
@@ -47,7 +60,7 @@ npm.cmd run watch
 
 ### 3. Debug trên VS Code / VSCodium
 1. Mở thư mục `new-vscode` trong VS Code hoặc VSCodium.
-2. Bấm phím `F5` (hoặc vào tab Run & Debug chọn **"Chạy Thử Novellized (Extension)"**).
-3. Một cửa sổ **Extension Development Host** sẽ tự động mở ra cùng thư mục mẫu `sample-novel`.
-4. Nhấp chuột vào file `01_canh_quan_tro.md` để trải nghiệm!
+2. Bấm phím **`F5`** (hoặc vào tab Run & Debug chọn **"Chạy Thử Novellized (Extension)"**).
+3. Một cửa sổ **Extension Development Host** sẽ tự động mở ra.
+4. Bấm `Ctrl+Shift+P` và chọn **"Novellized: ✨ Khởi tạo Tác phẩm Mới..."** (hoặc bấm nút trên thanh File Explorer) để bắt đầu!
 
