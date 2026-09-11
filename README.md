@@ -59,7 +59,7 @@ npm.cmd run watch
 ```
 
 ### 3. Debug with VS Code / VSCodium
-1. Open the `new-vscode` directory in VS Code or VSCodium.
+1. Open the `novellized-editor` directory in VS Code or VSCodium.
 2. Press **`F5`** (or go to Run & Debug and select **"Launch Novellized (Extension)"**).
 3. A clean **Extension Development Host** window will open.
 4. Press `Ctrl+Shift+P` and choose **"Novellized: ✨ Create New Novel Project..."** (or click the button in File Explorer) to test!

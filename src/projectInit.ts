@@ -185,6 +185,6 @@ async function generateNovelScaffold(options: NovelInitOptions): Promise<void> {
     }
 
     vscode.window.showInformationMessage(
-        `🎉 Successfully initialized novel project "${options.title}"! Happy writing.`
+        `Successfully initialized novel project "${options.title}"! Happy writing.`
     );
 }
