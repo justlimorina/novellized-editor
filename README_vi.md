@@ -63,3 +63,4 @@ npm.cmd run watch
 2. Bấm phím **`F5`** (hoặc vào tab Run & Debug chọn **"Launch Novellized (Extension)"**).
 3. Một cửa sổ **Extension Development Host** sẽ tự động mở ra.
 4. Bấm `Ctrl+Shift+P` và chọn **"Novellized: ✨ Create New Novel Project..."** (hoặc bấm nút trên thanh File Explorer) để bắt đầu!
+
