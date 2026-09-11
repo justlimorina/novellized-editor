@@ -1,0 +1,203 @@
+:root {
+    --prose-font: 'Lora', 'Merriweather', 'Book Antiqua', 'Times New Roman', 'Liberation Sans', serif;
+    --ui-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --max-content-width: 780px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--vscode-editor-background, #1e1e1e);
+    color: var(--vscode-editor-foreground, #d4d4d4);
+    font-family: var(--prose-font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.editor-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* Thanh công cụ / Thông số văn bản */
+.editor-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 24px;
+    background: var(--vscode-editor-background, #1e1e1e);
+    border-bottom: 1px solid var(--vscode-editorGroup-border, rgba(128, 128, 128, 0.2));
+    font-family: var(--ui-font);
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground, #8c8c8c);
+    user-select: none;
+}
+
+.toolbar-actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--vscode-button-secondaryBackground, #3a3d41);
+    color: var(--vscode-button-secondaryForeground, #ffffff);
+    border: 1px solid var(--vscode-button-border, transparent);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: var(--ui-font);
+    transition: background-color 0.15s ease;
+}
+
+.toolbar-actions button:hover {
+    background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
+/* Trang viết văn (Book canvas) */
+.editor-canvas {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 40px 24px 160px 24px;
+}
+
+#editor-container {
+    width: 100%;
+    max-width: var(--max-content-width);
+}
+
+/* TipTap Editor Styles */
+.tiptap {
+    outline: none;
+    font-family: var(--prose-font);
+    font-size: 18px;
+    line-height: 1.85;
+    color: var(--vscode-editor-foreground, #e0e0e0);
+}
+
+/* Đoạn văn văn học có thụt đầu dòng */
+.tiptap p {
+    margin-bottom: 0.9rem;
+    text-indent: 1.8rem;
+    text-align: justify;
+    text-justify: inter-word;
+}
+
+/* Đoạn văn đầu tiên sau tiêu đề không thụt đầu dòng (chuẩn xuất bản) */
+.tiptap h1 + p,
+.tiptap h2 + p,
+.tiptap h3 + p,
+.tiptap hr + p {
+    text-indent: 0;
+}
+
+/* Tiêu đề H1 - Chương / Phần */
+.tiptap h1 {
+    font-family: var(--prose-font);
+    font-size: 2.1rem;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 3.5rem;
+    margin-bottom: 2rem;
+    letter-spacing: 0.5px;
+    line-height: 1.3;
+}
+
+/* Tiêu đề H2 - Cảnh / Phân đoạn */
+.tiptap h2 {
+    font-family: var(--prose-font);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 2.5rem;
+    margin-bottom: 1.2rem;
+    border-bottom: 1px solid var(--vscode-editorGroup-border, rgba(128, 128, 128, 0.2));
+    padding-bottom: 0.4rem;
+}
+
+.tiptap h3 {
+    font-family: var(--prose-font);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.8rem;
+}
+
+/* Trích dẫn / Lời độc thoại nội tâm */
+.tiptap blockquote {
+    border-left: 3px solid var(--vscode-editorInfo-foreground, #3794ff);
+    margin: 1.5rem 0;
+    padding-left: 1.2rem;
+    font-style: italic;
+    color: var(--vscode-descriptionForeground, #a0a0a0);
+}
+
+.tiptap blockquote p {
+    text-indent: 0;
+}
+
+/* Đường phân cảnh (Scene Break) */
+.tiptap hr {
+    border: none;
+    text-align: center;
+    margin: 3rem 0;
+    height: 1.5rem;
+}
+
+.tiptap hr::after {
+    content: '⁂';
+    font-size: 1.4rem;
+    color: var(--vscode-descriptionForeground, #888);
+    display: block;
+}
+
+/* Danh sách */
+.tiptap ul,
+.tiptap ol {
+    padding-left: 2rem;
+    margin-bottom: 1rem;
+}
+
+.tiptap li {
+    margin-bottom: 0.4rem;
+}
+
+.tiptap li p {
+    text-indent: 0;
+    margin-bottom: 0;
+}
+
+/* In đậm / In nghiêng */
+.tiptap strong {
+    font-weight: 700;
+}
+
+.tiptap em {
+    font-style: italic;
+}
+
+/* Highlight / Selection */
+.tiptap ::selection {
+    background-color: var(--vscode-editor-selectionBackground, rgba(38, 79, 120, 0.6));
+}
+
+/* Placeholder khi trang trống */
+.tiptap p.is-editor-empty:first-child::before {
+    content: 'Bắt đầu chắp bút tác phẩm của bạn tại đây...';
+    color: var(--vscode-editorGhostText-foreground, rgba(128, 128, 128, 0.5));
+    float: left;
+    pointer-events: none;
+    height: 0;
+    text-indent: 0;
+    font-style: italic;
+}
+

@@ -1,0 +1,73 @@
+{
+  "name": "novellized-editor",
+  "displayName": "Novellized Prose Editor",
+  "description": "WYSIWYG Live Markdown Editor for Authors and Novelists in VS Code / VSCodium",
+  "version": "0.1.0",
+  "publisher": "novellized",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "Formatters"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "novellized.editor",
+        "displayName": "Novellized Live View",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "novellized.openAsRawMarkdown",
+        "title": "Novellized: Mở bằng Markdown Thô (Monaco)",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "novellized.openAsLiveView",
+        "title": "Novellized: Mở bằng Chế độ Soạn thảo Trực tiếp",
+        "icon": "$(book)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "novellized.openAsRawMarkdown",
+          "when": "activeCustomEditorId == 'novellized.editor'",
+          "group": "navigation"
+        },
+        {
+          "command": "novellized.openAsLiveView",
+          "when": "resourceExtname == .md && activeCustomEditorId != 'novellized.editor'",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "node esbuild.config.mjs --production",
+    "compile": "tsc -noEmit",
+    "watch": "node esbuild.config.mjs --watch",
+    "build": "node esbuild.config.mjs --production"
+  },
+  "dependencies": {
+    "@tiptap/core": "^2.11.5",
+    "@tiptap/starter-kit": "^2.11.5",
+    "tiptap-markdown": "^0.8.10"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/vscode": "^1.80.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.3.3"
+  }
+}
+
