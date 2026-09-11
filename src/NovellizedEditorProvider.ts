@@ -65,6 +65,19 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
                 case 'requestRawMode':
                     await vscode.commands.executeCommand('workbench.action.reopenTextEditor');
                     return;
+
+                case 'save':
+                    if (message.text !== undefined && message.text !== document.getText()) {
+                        lastReceivedContent = message.text;
+                        isInternalUpdate = true;
+                        try {
+                            await this.updateTextDocument(document, message.text);
+                        } finally {
+                            isInternalUpdate = false;
+                        }
+                    }
+                    await document.save();
+                    return;
             }
         });
 
@@ -120,8 +133,14 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
 <body>
     <div class="editor-shell">
         <div class="editor-toolbar">
-            <div class="document-stats" id="stats">0 words • 0 characters</div>
+            <div class="document-stats" id="stats">0 words • 0 characters • 0 min read</div>
             <div class="toolbar-actions">
+                <button id="btn-toggle-focus" class="btn-toggle active" title="Toggle Focus Mode (Dim surrounding paragraphs)">
+                    🎯 Focus: ON
+                </button>
+                <button id="btn-toggle-typewriter" class="btn-toggle active" title="Toggle Typewriter Scrolling (Keep active line centered)">
+                    📜 Typewriter: ON
+                </button>
                 <button id="btn-toggle-raw" title="Switch to Raw Markdown mode (Monaco)">
                     Raw Markdown
                 </button>
@@ -131,6 +150,22 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
             <div id="editor-container"></div>
         </div>
     </div>
+
+    <!-- Floating Bubble Menu for ProseMirror -->
+    <div id="bubble-menu" class="bubble-menu">
+        <button type="button" data-command="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+        <button type="button" data-command="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+        <button type="button" data-command="strike" title="Strikethrough"><s>S</s></button>
+        <span class="menu-divider"></span>
+        <button type="button" data-command="h1" title="Heading 1">H1</button>
+        <button type="button" data-command="h2" title="Heading 2">H2</button>
+        <button type="button" data-command="h3" title="Heading 3">H3</button>
+        <button type="button" data-command="p" title="Paragraph">¶</button>
+        <span class="menu-divider"></span>
+        <button type="button" data-command="blockquote" title="Quote / Inner Monologue">”</button>
+        <button type="button" data-command="divider" title="Scene Break">⁂</button>
+    </div>
+
     <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

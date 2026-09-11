@@ -44,6 +44,12 @@ body {
     user-select: none;
 }
 
+.toolbar-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .toolbar-actions button {
     display: inline-flex;
     align-items: center;
@@ -56,19 +62,33 @@ body {
     cursor: pointer;
     font-size: 12px;
     font-family: var(--ui-font);
-    transition: background-color 0.15s ease;
+    transition: all 0.15s ease;
 }
 
 .toolbar-actions button:hover {
     background: var(--vscode-button-secondaryHoverBackground, #45494e);
 }
 
-/* Book Writing Canvas */
+.toolbar-actions .btn-toggle {
+    opacity: 0.65;
+    background: transparent;
+    border: 1px solid var(--vscode-widget-border, rgba(128, 128, 128, 0.3));
+    color: var(--vscode-foreground, #cccccc);
+}
+
+.toolbar-actions .btn-toggle.active {
+    opacity: 1;
+    background: var(--vscode-button-secondaryBackground, #3a3d41);
+    color: var(--vscode-button-secondaryForeground, #ffffff);
+    border-color: var(--vscode-button-border, rgba(128, 128, 128, 0.5));
+}
+
+/* Book Writing Canvas - Generous bottom padding for typewriter scrolling */
 .editor-canvas {
     flex: 1;
     display: flex;
     justify-content: center;
-    padding: 40px 24px 160px 24px;
+    padding: 40px 24px 65vh 24px;
 }
 
 #editor-container {
@@ -199,4 +219,115 @@ body {
     height: 0;
     text-indent: 0;
     font-style: italic;
+}
+
+/* ==========================================================================
+   Focus Mode (Lit paragraph, dimmed surrounding text)
+   ========================================================================== */
+.focus-mode-active .tiptap > * {
+    opacity: 0.28;
+    filter: blur(0.15px);
+    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), filter 0.25s ease;
+}
+
+.focus-mode-active .tiptap > *.has-focus,
+.focus-mode-active .tiptap > *:hover {
+    opacity: 1;
+    filter: none;
+}
+
+/* ==========================================================================
+   Tippy & Floating Bubble Menu
+   ========================================================================== */
+.tippy-box[data-animation=fade][data-state=hidden] {
+    opacity: 0;
+}
+
+[data-tippy-root] {
+    max-width: calc(100vw - 10px);
+}
+
+.tippy-box {
+    position: relative;
+    background-color: var(--vscode-editorWidget-background, #252526);
+    color: var(--vscode-editorWidget-foreground, #cccccc);
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: normal;
+    outline: 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--vscode-editorWidget-border, rgba(128, 128, 128, 0.25));
+    transition-property: transform, visibility, opacity;
+}
+
+.tippy-box[data-placement^=top] > .tippy-arrow {
+    bottom: 0;
+}
+
+.tippy-box[data-placement^=top] > .tippy-arrow:before {
+    bottom: -7px;
+    left: 0;
+    border-width: 8px 8px 0;
+    border-top-color: var(--vscode-editorWidget-background, #252526);
+    transform-origin: center top;
+}
+
+.tippy-box[data-placement^=bottom] > .tippy-arrow {
+    top: 0;
+}
+
+.tippy-box[data-placement^=bottom] > .tippy-arrow:before {
+    top: -7px;
+    left: 0;
+    border-width: 0 8px 8px;
+    border-bottom-color: var(--vscode-editorWidget-background, #252526);
+    transform-origin: center bottom;
+}
+
+.tippy-content {
+    position: relative;
+    padding: 3px 4px;
+    z-index: 1;
+}
+
+.bubble-menu {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    user-select: none;
+}
+
+.bubble-menu button {
+    background: transparent;
+    border: none;
+    color: var(--vscode-foreground, #cccccc);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: var(--ui-font);
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.bubble-menu button:hover {
+    background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    color: var(--vscode-foreground, #ffffff);
+}
+
+.bubble-menu button.is-active {
+    background: var(--vscode-button-background, #0e639c);
+    color: var(--vscode-button-foreground, #ffffff);
+}
+
+.bubble-menu .menu-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--vscode-editorGroup-border, rgba(128, 128, 128, 0.3));
+    margin: 0 3px;
 }

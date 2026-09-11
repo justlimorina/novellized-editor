@@ -71,6 +71,8 @@
   },
   "dependencies": {
     "@tiptap/core": "^2.11.5",
+    "@tiptap/extension-bubble-menu": "^2.27.3",
+    "@tiptap/extension-focus": "^2.27.3",
     "@tiptap/starter-kit": "^2.11.5",
     "tiptap-markdown": "^0.8.10"
   },
@@ -81,4 +83,3 @@
     "typescript": "^5.3.3"
   }
 }
-
