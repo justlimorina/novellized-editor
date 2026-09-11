@@ -18,8 +18,18 @@ Trình soạn thảo trực tiếp (WYSIWYG Live Markdown Editor) dành riêng c
 * **Hoán đổi Chế độ Xem Tức thì (Dual Engine)**:
   * Click nút **"Raw Markdown"** trên thanh công cụ hoặc icon trên thanh tiêu đề để chuyển về Monaco Editor truyền thống.
   * Bấm nút **"Open in Live View"** để quay trở lại TipTap bất kỳ lúc nào mà không lo mất dữ liệu hay xung đột buffer.
-* **Bộ đếm Từ & Ký tự Trực tiếp**:
-  * Tự động tính toán số từ và tổng số ký tự theo thời gian thực trên thanh công cụ.
+* **🎯 Focus Mode & 📜 Typewriter Scrolling**:
+  * **Focus Mode (Mặc định BẬT)**: Chỉ làm sáng đoạn văn tác giả đang viết dở, nhẹ nhàng làm mờ các đoạn xung quanh giúp tập trung tối đa tâm trí vào dòng chảy văn chương.
+  * **Typewriter Scrolling**: Con trỏ gõ tới đâu, màn hình tự động cuộn giữ dòng chữ ở vị trí trung tâm tầm mắt (~42% chiều cao màn hình).
+* **🪄 Floating Bubble Menu & Phím tắt Lưu**:
+  * Bôi đen văn bản để gọi thanh công cụ nổi: Đậm (`B`), Nghiêng (`I`), Gạch chữ (`S`), Heading (`H1`, `H2`, `H3`), Trích dẫn suy nghĩ (`”`), Phân cảnh (`⁂`).
+  * Bắt chuẩn phím `Ctrl+S` / `Cmd+S` ngay trong Live View để lưu tài liệu tức thì.
+* **📚 Sidebar Bản Thảo Chuyên Nghiệp (Scrivener-style Activity Bar)**:
+  * Icon sách riêng biệt trên Activity Bar (có thể kéo lên đầu làm Sidebar chính).
+  * Cây thư mục bản thảo: **Hồi → Chương → Phân cảnh**, trích xuất tiêu đề cảnh thực tế kèm số từ theo thời gian thực.
+  * Thêm cảnh nhanh (`+ Scene`), thêm chương mới (`+ Chapter`), xóa cảnh trực quan.
+  * Bảng theo dõi mục tiêu: **Tiến độ từ toàn tác phẩm**, thanh progress bar trực quan, thời gian đọc ước tính và phím tắt sửa mục tiêu từ.
+  * Truy cập 1-click vào Story Bible (`characters.md`, `worldbuilding.md`, `outline.md`, `ai_rules.json`).
 * **Khởi Tạo Tác Phẩm Tự Động (Project Wizard)**:
   * Lệnh `Novellized: ✨ Create New Novel Project...` giúp nhà văn thiết lập cấu trúc tác phẩm chỉ sau 4 câu hỏi.
   * Tự động sinh sẵn hồ sơ nhân vật, bối cảnh thế giới và dàn ý 3 Hồi.

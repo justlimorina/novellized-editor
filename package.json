@@ -13,6 +13,34 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "novellized-manuscript",
+          "title": "Novellized Manuscript",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "novellized-manuscript": [
+        {
+          "id": "novellized.manuscriptView",
+          "name": "Manuscript",
+          "visibility": "visible"
+        },
+        {
+          "id": "novellized.projectStatsView",
+          "name": "Writing Goals & Stats",
+          "visibility": "visible"
+        },
+        {
+          "id": "novellized.bibleView",
+          "name": "Story Bible & AI Context",
+          "visibility": "visible"
+        }
+      ]
+    },
     "customEditors": [
       {
         "viewType": "novellized.editor",
@@ -40,6 +68,31 @@
         "command": "novellized.createNewNovel",
         "title": "Novellized: ✨ Create New Novel Project...",
         "icon": "$(sparkle)"
+      },
+      {
+        "command": "novellized.refreshManuscript",
+        "title": "Novellized: Refresh Manuscript",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "novellized.addScene",
+        "title": "Novellized: Add New Scene...",
+        "icon": "$(plus)"
+      },
+      {
+        "command": "novellized.addChapter",
+        "title": "Novellized: Add New Chapter...",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "novellized.setWordGoal",
+        "title": "Novellized: Set Target Word Count",
+        "icon": "$(target)"
+      },
+      {
+        "command": "novellized.deleteScene",
+        "title": "Novellized: Delete Scene",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -54,9 +107,57 @@
           "when": "resourceExtname == .md && activeCustomEditorId != 'novellized.editor'",
           "group": "navigation"
         }
+      ],
+      "view/title": [
+        {
+          "command": "novellized.refreshManuscript",
+          "when": "view == novellized.manuscriptView || view == novellized.projectStatsView || view == novellized.bibleView",
+          "group": "navigation"
+        },
+        {
+          "command": "novellized.addChapter",
+          "when": "view == novellized.manuscriptView",
+          "group": "navigation"
+        },
+        {
+          "command": "novellized.addScene",
+          "when": "view == novellized.manuscriptView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "novellized.addScene",
+          "when": "view == novellized.manuscriptView && viewItem == chapter",
+          "group": "inline"
+        },
+        {
+          "command": "novellized.addChapter",
+          "when": "view == novellized.manuscriptView && viewItem == part",
+          "group": "inline"
+        },
+        {
+          "command": "novellized.openAsLiveView",
+          "when": "view == novellized.manuscriptView && viewItem == scene",
+          "group": "navigation"
+        },
+        {
+          "command": "novellized.openAsRawMarkdown",
+          "when": "view == novellized.manuscriptView && viewItem == scene",
+          "group": "navigation"
+        },
+        {
+          "command": "novellized.deleteScene",
+          "when": "view == novellized.manuscriptView && viewItem == scene",
+          "group": "9_cutcopypaste"
+        }
       ]
     },
     "viewsWelcome": [
+      {
+        "view": "novellized.manuscriptView",
+        "contents": "No novel manuscript found in this workspace.\n[✨ Create New Novel Project](command:novellized.createNewNovel)"
+      },
       {
         "view": "explorer",
         "contents": "Start your literary project with Novellized.\n[✨ Create New Novel Project](command:novellized.createNewNovel)"
