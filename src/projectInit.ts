@@ -191,3 +191,4 @@ async function generateNovelScaffold(options: NovelInitOptions): Promise<void> {
         `🎉 Đã khởi tạo thành công tác phẩm "${options.title}"! Bắt đầu chắp bút ngay.`
     );
 }
+
