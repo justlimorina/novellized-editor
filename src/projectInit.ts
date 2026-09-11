@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 
 interface NovelInitOptions {
     title: string;
@@ -10,7 +9,7 @@ interface NovelInitOptions {
 }
 
 export async function createNewNovelProject(): Promise<void> {
-    // 1. Xác định thư mục đích
+    // 1. Determine target directory
     let targetWorkspaceUri: vscode.Uri | undefined;
 
     if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
@@ -20,7 +19,7 @@ export async function createNewNovelProject(): Promise<void> {
             canSelectFiles: false,
             canSelectFolders: true,
             canSelectMany: false,
-            openLabel: 'Chọn thư mục lưu tác phẩm'
+            openLabel: 'Select Folder for Novel'
         });
         if (!pickedFolders || pickedFolders.length === 0) {
             return;
@@ -28,65 +27,65 @@ export async function createNewNovelProject(): Promise<void> {
         targetWorkspaceUri = pickedFolders[0];
     }
 
-    // 2. Nhập Tên tác phẩm
+    // 2. Novel Title
     const title = await vscode.window.showInputBox({
-        title: 'Novellized: Bước 1/4',
-        prompt: 'Nhập tên tác phẩm của bạn',
-        placeHolder: 'Ví dụ: Vương Triều Hoàng Hôn',
-        validateInput: value => (!value || value.trim().length === 0) ? 'Tên tác phẩm không được để trống' : null
+        title: 'Novellized: Step 1/4',
+        prompt: 'Enter your novel title',
+        placeHolder: 'e.g., The Twilight Dynasty',
+        validateInput: value => (!value || value.trim().length === 0) ? 'Novel title cannot be empty' : null
     });
     if (!title) return;
 
-    // 3. Nhập Tên tác giả / Bút danh
+    // 3. Author Name / Pen Name
     const authorInput = await vscode.window.showInputBox({
-        title: 'Novellized: Bước 2/4',
-        prompt: 'Nhập bút danh hoặc tên tác giả',
-        placeHolder: 'Ví dụ: Mặc Khách (Mặc định: Khuyết danh)'
+        title: 'Novellized: Step 2/4',
+        prompt: 'Enter author name or pen name',
+        placeHolder: 'e.g., Arthur Vance (Default: Anonymous)'
     });
     if (authorInput === undefined) return;
-    const author = authorInput.trim() || 'Khuyết danh';
+    const author = authorInput.trim() || 'Anonymous';
 
-    // 4. Chọn Cấu trúc tác phẩm
+    // 4. Project Structure
     const structurePick = await vscode.window.showQuickPick([
         {
-            label: '$(layers) Cấu trúc Đầy đủ (Hồi → Chương → Cảnh)',
+            label: '$(layers) Full Structure (Part → Chapter → Scene)',
             description: 'part_01/chapter_01/scene_01.md',
-            detail: 'Khuyên dùng cho tiểu thuyết trường thiên hoặc tác phẩm nhiều tuyến nhân vật.',
+            detail: 'Recommended for epic novels, fantasy series, or multi-arc stories.',
             value: 'full' as const
         },
         {
-            label: '$(file-submodule) Cấu trúc Gọn nhẹ (Chương → Cảnh)',
+            label: '$(file-submodule) Compact Structure (Chapter → Scene)',
             description: 'chapter_01/scene_01.md',
-            detail: 'Phù hợp cho truyện vừa, truyện ngắn hoặc tản văn.',
+            detail: 'Ideal for novellas, standalone books, or short fiction.',
             value: 'simple' as const
         }
     ], {
-        title: 'Novellized: Bước 3/4',
-        placeHolder: 'Chọn cách tổ chức chương hồi cho tác phẩm'
+        title: 'Novellized: Step 3/4',
+        placeHolder: 'Choose how to organize chapters and scenes'
     });
     if (!structurePick) return;
 
-    // 5. Chọn Ngôi kể chính (Dành cho AI Agent)
+    // 5. Point of View (for AI Agent alignment)
     const povPick = await vscode.window.showQuickPick([
         {
-            label: 'Ngôi thứ nhất ("Tôi")',
-            description: 'Cảm xúc trực tiếp, góc nhìn nội tâm sâu sắc của một nhân vật'
+            label: 'First Person ("I")',
+            description: 'Direct emotional resonance and intimate character interiority'
         },
         {
-            label: 'Ngôi thứ ba giới hạn (Third-person Limited)',
-            description: 'Góc nhìn khách quan nhưng bám theo tâm lý của một nhân vật tại mỗi cảnh'
+            label: 'Third-Person Limited',
+            description: 'Follows one POV character closely per scene (Modern fiction standard)'
         },
         {
-            label: 'Ngôi thứ ba toàn tri (Third-person Omniscient)',
-            description: 'Người kể chuyện biết trước mọi suy nghĩ và bối cảnh xảy ra'
+            label: 'Third-Person Omniscient',
+            description: 'Narrator possesses panoramic knowledge of all events, thoughts, and lore'
         }
     ], {
-        title: 'Novellized: Bước 4/4',
-        placeHolder: 'Chọn ngôi kể chủ đạo (giúp AI Agent duy trì đúng đại từ và giọng văn)'
+        title: 'Novellized: Step 4/4',
+        placeHolder: 'Select primary narrative point of view (helps AI agents maintain consistency)'
     });
     if (!povPick) return;
 
-    // Tạo các tệp và thư mục
+    // Generate project files and folders
     await generateNovelScaffold({
         title: title.trim(),
         author,
@@ -97,10 +96,8 @@ export async function createNewNovelProject(): Promise<void> {
 }
 
 async function generateNovelScaffold(options: NovelInitOptions): Promise<void> {
-    const wsEdit = new vscode.WorkspaceEdit();
     const encoder = new TextEncoder();
 
-    // Xác định đường dẫn file cảnh đầu tiên
     let firstSceneRelativePath = '';
     let secondSceneRelativePath = '';
 
@@ -113,32 +110,32 @@ async function generateNovelScaffold(options: NovelInitOptions): Promise<void> {
     }
 
     const filesToCreate: Array<{ relativePath: string; content: string }> = [
-        // 1. Cảnh mở màn 1
+        // 1. First Scene
         {
             relativePath: firstSceneRelativePath,
-            content: `# Hồi 1: Khởi Đầu Mới\n\n## Chương 1: Cơn Gió Đổi Chiều\n\n### Cảnh 1: Lời Mở Màn\n\nGió mùa thu khẽ thổi qua rặng cây bên ngoài khung cửa sổ, mang theo hơi lạnh đầu mùa và mùi hương thoang thoảng của cỏ khô.\n\nNhân vật chính khẽ dừng lại trước ngưỡng cửa, đưa mắt nhìn về phía con đường mòn phía xa. Cuộc hành trình dài phía trước vẫn còn bao điều chưa hé lộ.\n\n---\n\n"Đã đến lúc phải lên đường rồi."\n`
+            content: `# Part 1: A New Beginning\n\n## Chapter 1: Winds of Change\n\n### Scene 1: The Threshold\n\nThe autumn wind stirred gently through the weathered trees outside the window, carrying the crisp chill of dawn and the faint scent of dry earth.\n\nThe traveler paused at the doorway, looking down the winding road that stretched into the distant hills. The journey ahead was long, fraught with perils and secrets yet to be uncovered.\n\n---\n\n"It is time to move on."\n`
         },
-        // 2. Cảnh 2 mẫu
+        // 2. Second Scene Template
         {
             relativePath: secondSceneRelativePath,
-            content: `### Cảnh 2: Cuộc Gặp Gỡ Bất Ngờ\n\nCon đường dẫn vào thị trấn buổi chiều tà dần trở nên vắng vẻ. Những ánh đèn lồng đầu tiên bắt đầu được thắp lên dọc theo hai bên dãy phố cổ.\n\nỞ phía góc đường, một bóng người quen thuộc dường như đã chờ đợi từ lâu...\n`
+            content: `### Scene 2: An Unexpected Encounter\n\nThe road into town grew quieter as twilight settled over the cobblestones. Lanterns began to flicker to life along the old tavern row.\n\nNear the corner of the square, a shadowed figure waited patiently in the mist, as if expecting company...\n`
         },
-        // 3. docs/characters.md (Hồ sơ nhân vật cho người viết & AI)
+        // 3. docs/characters.md (Character Bible for Author & AI)
         {
             relativePath: 'docs/characters.md',
-            content: `# Hồ Sơ Nhân Vật: ${options.title}\n\n*Tài liệu này được dùng để quản lý nhân vật cho tác giả và cung cấp ngữ cảnh nhân vật cho AI Agent.*\n\n---\n\n## 1. Nhân Vật Chính\n\n* **Họ và tên**: [Tên nhân vật]\n* **Bút danh / Biệt danh**: \n* **Tuổi**: \n* **Ngoại hình & Nhận dạng**: \n* **Mục tiêu cốt lõi (Goal)**: Điều nhân vật khao khát đạt được nhất là gì?\n* **Xung đột nội tâm (Flaw/Conflict)**: Nỗi sợ, điểm yếu tâm lý hoặc sai lầm trong quá khứ.\n* **Bí mật chưa hé lộ**: \n* **Mối quan hệ**: Thân thiết với ai? Coi ai là đối thủ?\n\n---\n\n## 2. Tuyến Nhân Vật Phụ & Đối Kháng\n\n### [Tên Nhân Vật Phụ 1]\n* **Vai trò**: (Bạn đồng hành / Người cố vấn / Kẻ thù)\n* **Đặc điểm nổi bật**: \n* **Động cơ**: \n`
+            content: `# Character Bible: ${options.title}\n\n*This document is used by the author to track character details and by AI agents to maintain continuity and psychological depth.*\n\n---\n\n## 1. Protagonist\n\n* **Full Name**: [Character Name]\n* **Aliases / Titles**: \n* **Age**: \n* **Appearance & Identifying Marks**: \n* **Core Motivation**: What do they desire above all else?\n* **Internal Conflict & Flaws**: Deepest fear, emotional wounds, or past mistakes.\n* **Secrets**: What are they hiding from others?\n* **Key Relationships**: Allies, rivals, mentors.\n\n---\n\n## 2. Supporting Cast & Antagonists\n\n### [Character Name]\n* **Role**: (Companion / Mentor / Antagonist)\n* **Key Traits**: \n* **Motivation**: \n`
         },
-        // 4. docs/worldbuilding.md (Bối cảnh thế giới)
+        // 4. docs/worldbuilding.md (Worldbuilding Guide)
         {
             relativePath: 'docs/worldbuilding.md',
-            content: `# Bối Cảnh Thế Giới: ${options.title}\n\n## 1. Không Gian & Thời Gian\n* **Thời đại / Mốc lịch sử**: (Ví dụ: Thời trung cổ giả tưởng, thế kỷ 19, hoặc tương lai viễn tưởng)\n* **Địa lý chủ đạo**: Các vương quốc, thành thị, ranh giới tự nhiên quan trọng.\n\n## 2. Quy Luật & Xã Hội\n* **Cơ cấu quyền lực**: Ai nắm quyền cai trị? Mâu thuẫn giữa các tầng lớp là gì?\n* **Hệ thống đặc thù**: (Phép thuật, Công nghệ, Võ học, Tôn giáo... nếu có).\n* **Văn hóa & Tập tục**: Những điều cấm kỵ hoặc phong tục nổi bật trong thế giới này.\n`
+            content: `# Worldbuilding Guide: ${options.title}\n\n## 1. Setting & Atmosphere\n* **Era / Time Period**: (e.g., Medieval fantasy, Victorian mystery, Cyberpunk future)\n* **Geography & Key Locations**: Major realms, cities, geographical borders, climate.\n\n## 2. Rules & Society\n* **Power Structures**: Who governs? What are the political or social tensions?\n* **Special Systems**: (Magic, advanced technology, supernatural laws, martial arts, religion).\n* **Culture & Customs**: Key taboos, rituals, traditions, and societal expectations.\n`
         },
-        // 5. docs/outline.md (Dàn ý 3 hồi)
+        // 5. docs/outline.md (Master 3-Act Outline)
         {
             relativePath: 'docs/outline.md',
-            content: `# Dàn Ý Tổng Thể: ${options.title}\n\n## Hồi 1: Thiết Lập & Khởi Phát\n* **Bình thường cũ**: Cuộc sống thường nhật của nhân vật trước khi biến cố xảy ra.\n* **Sự kiện khởi phát (Inciting Incident)**: Biến cố buộc nhân vật phải bước vào cuộc phiêu lưu.\n\n## Hồi 2: Thử Thách & Leo Thang\n* **Những chướng ngại đầu tiên**: Nhân vật đối mặt với thử thách mới nhưng cách tiếp cận cũ thất bại.\n* **Điểm giữa (Midpoint)**: Bất ngờ lớn hoặc sự thật được hé lộ, chuyển từ bị động sang chủ động.\n* **Đêm tối của tâm hồn (All is Lost)**: Thời điểm khủng hoảng tồi tệ nhất, dường như mọi thứ sụp đổ.\n\n## Hồi 3: Cao Trào & Hồi Kết\n* **Đỉnh điểm cao trào (Climax)**: Trận đối đầu quyết định.\n* **Cân bằng mới**: Hậu quả, bài học và cuộc sống mới sau khi kết thúc biến cố.\n`
+            content: `# Master Outline: ${options.title}\n\n## Act 1: Setup & Inciting Incident\n* **Status Quo**: The protagonist's ordinary world before the rupture.\n* **Inciting Incident**: The catalyst that forces the protagonist out of their comfort zone.\n\n## Act 2: Rising Action & Midpoint\n* **Rising Obstacles**: Early trials, new alliances, and escalating stakes.\n* **Midpoint**: A major revelation or turning point shifting from reactive to proactive.\n* **Dark Night of the Soul**: The lowest emotional point where all seems lost.\n\n## Act 3: Climax & Resolution\n* **Climax**: The ultimate confrontation or decisive test.\n* **New Equilibrium**: The aftermath, lessons learned, and the transformed reality.\n`
         },
-        // 6. .novel/project.json (Metadata hệ thống)
+        // 6. .novel/project.json (Machine metadata)
         {
             relativePath: '.novel/project.json',
             content: JSON.stringify({
@@ -150,18 +147,18 @@ async function generateNovelScaffold(options: NovelInitOptions): Promise<void> {
                 version: '1.0.0'
             }, null, 2)
         },
-        // 7. .novel/ai_rules.json (Quy tắc hành vi cho AI Agent)
+        // 7. .novel/ai_rules.json (System instructions for AI Agents)
         {
             relativePath: '.novel/ai_rules.json',
             content: JSON.stringify({
                 novelTitle: options.title,
                 author: options.author,
                 pointOfView: options.pov,
-                toneAndVoice: "Văn phong văn học sâu sắc, giàu hình ảnh miêu tả, nhịp điệu tự nhiên, tránh sáo rỗng.",
+                toneAndVoice: "Evocative literary prose, vivid sensory descriptions, measured pacing, avoiding modern clichés.",
                 prohibitedElements: [
-                    "Không tùy tiện thay đổi ngôi xưng hô của nhân vật",
-                    "Tránh dùng từ ngữ hiện đại hóa lố bịch nếu bối cảnh là cổ trang/lịch sử",
-                    "Luôn tuân thủ quy tắc Show, Don't Tell (Miêu tả hành động và cảm giác thay vì kể lể)"
+                    "Never arbitrarily switch or break the established narrative point of view",
+                    "Avoid modern slang and anachronistic vocabulary in historical or fantasy settings",
+                    "Strictly adhere to 'Show, Don't Tell' (depict visceral actions and sensory details rather than summarizing)"
                 ],
                 contextFiles: [
                     "docs/characters.md",
@@ -172,13 +169,13 @@ async function generateNovelScaffold(options: NovelInitOptions): Promise<void> {
         }
     ];
 
-    // Tạo từng file qua FileSystem API của VS Code
+    // Write all scaffold files via VS Code FileSystem API
     for (const file of filesToCreate) {
         const fileUri = vscode.Uri.joinPath(options.targetDir, file.relativePath);
         await vscode.workspace.fs.writeFile(fileUri, encoder.encode(file.content));
     }
 
-    // Mở ngay file cảnh đầu tiên ở chế độ Live View
+    // Automatically open first scene in Novellized Live View
     const firstSceneUri = vscode.Uri.joinPath(options.targetDir, firstSceneRelativePath);
     try {
         await vscode.commands.executeCommand('vscode.openWith', firstSceneUri, 'novellized.editor');
@@ -188,7 +185,6 @@ async function generateNovelScaffold(options: NovelInitOptions): Promise<void> {
     }
 
     vscode.window.showInformationMessage(
-        `🎉 Đã khởi tạo thành công tác phẩm "${options.title}"! Bắt đầu chắp bút ngay.`
+        `🎉 Successfully initialized novel project "${options.title}"! Happy writing.`
     );
 }
-

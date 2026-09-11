@@ -1,49 +1,49 @@
 # Novellized Prose Editor
 
-Trình soạn thảo trực tiếp (WYSIWYG Live Markdown Editor) dành riêng cho tác giả, nhà văn và biên kịch trên nền tảng VS Code / VSCodium.
+WYSIWYG Live Markdown Editor built specifically for authors, novelists, and creative writers on VS Code and VSCodium.
 
 ---
 
-## Tính năng Nổi bật
+## Key Features
 
-* **Soạn thảo trực tiếp (Live View)**: 
-  * Tích hợp khối động cơ **TipTap (ProseMirror)**, gõ Markdown đến đâu tự động hiển thị dạng trang sách in đến đó mà không làm hỏng cú pháp gốc.
-  * Hỗ trợ gõ nhanh Input Rules: gõ `# `, `## `, `**chữ**`, `*nghiêng*`, `> trích dẫn`, `---` phân cảnh tự động biến đổi tức thì.
-* **Typography Văn học Chuẩn xác**:
-  * Font stack tối ưu cho việc đọc và viết truyện:
+* **WYSIWYG Live View**:
+  * Powered by **TipTap (ProseMirror)**: Markdown is seamlessly rendered into a book-like typesetting experience as you type, without altering raw markdown syntax.
+  * Instant input rules: `# `, `## `, `**bold**`, `*italic*`, `> quote`, and `---` (auto-transformed into literary scene break `⁂`).
+* **Literary Typography**:
+  * Carefully balanced font stack designed for reading and prose writing:
     ```css
     font-family: 'Lora', 'Merriweather', 'Book Antiqua', 'Times New Roman', 'Liberation Sans', serif;
     ```
-  * Thụt đầu dòng đoạn văn tự động (`text-indent: 1.8rem`), giãn dòng thông thoáng (`line-height: 1.85`), căn lề đẹp mắt, giới hạn độ rộng đọc dễ chịu cho mắt.
-* **Hoán đổi Chế độ Xem Tức thì (Dual Engine)**:
-  * Click nút **"Markdown Thô"** trên thanh công cụ hoặc icon trên thanh tiêu đề để chuyển về Monaco Editor truyền thống.
-  * Bấm nút **"Chế độ Soạn thảo Trực tiếp"** để quay trở lại TipTap bất kỳ lúc nào mà không lo mất dữ liệu hay xung đột buffer.
-* **Bộ đếm Từ & Ký tự Trực tiếp**:
-  * Tự động tính toán số từ tiếng Việt và tổng số ký tự theo thời gian thực trên thanh công cụ.
-* **Khởi Tạo Tác Phẩm Tự Động (Project Wizard)**:
-  * Lệnh `Novellized: ✨ Khởi tạo Tác phẩm Mới...` giúp nhà văn thiết lập cấu trúc tác phẩm chỉ sau 4 câu hỏi.
-  * Tự động sinh sẵn hồ sơ nhân vật, bối cảnh thế giới và dàn ý 3 Hồi.
-* **Cấu trúc Thư mục Chuẩn Tác phẩm Tối ưu cho AI Agent**:
+  * Automatic paragraph indents (`text-indent: 1.8rem`), comfortable line-height (`1.85`), publishing-standard unindented first paragraphs after headings, and optimal reading width constraint.
+* **Instant Dual-Engine Switching**:
+  * Click the **"Raw Markdown"** button in the toolbar or editor title icon to switch back to traditional Monaco Editor.
+  * Click **"Open in Live View"** anytime to return to TipTap without buffer desync or data loss.
+* **Real-Time Word & Character Counter**:
+  * Live statistics tracking words and characters in the top toolbar.
+* **Automated Project Initializer Wizard**:
+  * Command `Novellized: ✨ Create New Novel Project...` guides writers through a quick 4-step setup.
+  * Automatically scaffolds character bibles, worldbuilding guides, and a 3-act master outline.
+* **AI Agent Context-Optimized Architecture**:
   ```text
-  [Tên_Tác_Phẩm]/
+  [Novel_Title]/
   ├── part_01/
   │   └── chapter_01/
-  │       ├── scene_01.md            <-- Cảnh mở đầu
+  │       ├── scene_01.md            <-- Opening scene (Auto-opened in Live View)
   │       └── scene_02.md
-  ├── docs/                          <-- Tài liệu bối cảnh (Người và AI cùng đọc/viết)
-  │   ├── characters.md              <-- Hồ sơ nhân vật (Tâm lý, ngoại hình, động lực)
-  │   ├── worldbuilding.md           <-- Bản đồ thế giới, quy luật, bối cảnh
-  │   └── outline.md                 <-- Dàn ý cốt truyện (Cấu trúc 3 Hồi)
-  └── .novel/                        <-- Chỉ dẫn kỹ thuật & Cấu hình cho AI
-      ├── project.json               <-- Tên tác phẩm, tác giả, mục tiêu số từ, ngày tạo
-      └── ai_rules.json              <-- System instructions cho AI (Ngôi kể, Tone & Voice, cấm kỵ)
+  ├── docs/                          <-- Context for both human and AI agents
+  │   ├── characters.md              <-- Character bible (Psychology, appearance, motivations)
+  │   ├── worldbuilding.md           <-- World lore, magic/tech systems, societal rules
+  │   └── outline.md                 <-- Master narrative arc (3-Act structure)
+  └── .novel/                        <-- Machine metadata & system instructions for AI
+      ├── project.json               <-- Novel metadata, word count targets, timestamps
+      └── ai_rules.json              <-- Rules for AI: Point of view, tone, voice, taboos
   ```
 
 ---
 
-## Hướng dẫn Chạy Thử và Phát triển
+## Development & Testing Guide
 
-### 1. Cài đặt Dependencies
+### 1. Install Dependencies
 ```bash
 npm.cmd install
 ```
@@ -53,14 +53,13 @@ npm.cmd install
 npm.cmd run build
 ```
 
-Hoặc chạy chế độ theo dõi thay đổi (Watch Mode):
+Or run watch mode:
 ```bash
 npm.cmd run watch
 ```
 
-### 3. Debug trên VS Code / VSCodium
-1. Mở thư mục `new-vscode` trong VS Code hoặc VSCodium.
-2. Bấm phím **`F5`** (hoặc vào tab Run & Debug chọn **"Chạy Thử Novellized (Extension)"**).
-3. Một cửa sổ **Extension Development Host** sẽ tự động mở ra.
-4. Bấm `Ctrl+Shift+P` và chọn **"Novellized: ✨ Khởi tạo Tác phẩm Mới..."** (hoặc bấm nút trên thanh File Explorer) để bắt đầu!
-
+### 3. Debug with VS Code / VSCodium
+1. Open the `new-vscode` directory in VS Code or VSCodium.
+2. Press **`F5`** (or go to Run & Debug and select **"Launch Novellized (Extension)"**).
+3. A clean **Extension Development Host** window will open.
+4. Press `Ctrl+Shift+P` and choose **"Novellized: ✨ Create New Novel Project..."** (or click the button in File Explorer) to test!

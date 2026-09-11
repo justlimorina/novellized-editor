@@ -28,17 +28,17 @@
     "commands": [
       {
         "command": "novellized.openAsRawMarkdown",
-        "title": "Novellized: Mở bằng Markdown Thô (Monaco)",
+        "title": "Novellized: Open as Raw Markdown",
         "icon": "$(file-code)"
       },
       {
         "command": "novellized.openAsLiveView",
-        "title": "Novellized: Mở bằng Chế độ Soạn thảo Trực tiếp",
+        "title": "Novellized: Open in Live View",
         "icon": "$(book)"
       },
       {
         "command": "novellized.createNewNovel",
-        "title": "Novellized: ✨ Khởi tạo Tác phẩm Mới...",
+        "title": "Novellized: ✨ Create New Novel Project...",
         "icon": "$(sparkle)"
       }
     ],
@@ -59,7 +59,7 @@
     "viewsWelcome": [
       {
         "view": "explorer",
-        "contents": "Bắt đầu dự án văn học với Novellized.\n[✨ Khởi tạo Tác phẩm Mới](command:novellized.createNewNovel)"
+        "contents": "Start your literary project with Novellized.\n[✨ Create New Novel Project](command:novellized.createNewNovel)"
       }
     ]
   },

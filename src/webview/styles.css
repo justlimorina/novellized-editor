@@ -27,7 +27,7 @@ body {
     width: 100%;
 }
 
-/* Thanh công cụ / Thông số văn bản */
+/* Toolbar & Document Statistics */
 .editor-toolbar {
     position: sticky;
     top: 0;
@@ -63,7 +63,7 @@ body {
     background: var(--vscode-button-secondaryHoverBackground, #45494e);
 }
 
-/* Trang viết văn (Book canvas) */
+/* Book Writing Canvas */
 .editor-canvas {
     flex: 1;
     display: flex;
@@ -85,7 +85,7 @@ body {
     color: var(--vscode-editor-foreground, #e0e0e0);
 }
 
-/* Đoạn văn văn học có thụt đầu dòng */
+/* Literary paragraphs with indent */
 .tiptap p {
     margin-bottom: 0.9rem;
     text-indent: 1.8rem;
@@ -93,7 +93,7 @@ body {
     text-justify: inter-word;
 }
 
-/* Đoạn văn đầu tiên sau tiêu đề không thụt đầu dòng (chuẩn xuất bản) */
+/* First paragraph following a heading or divider is unindented (publishing standard) */
 .tiptap h1 + p,
 .tiptap h2 + p,
 .tiptap h3 + p,
@@ -101,7 +101,7 @@ body {
     text-indent: 0;
 }
 
-/* Tiêu đề H1 - Chương / Phần */
+/* H1 - Part / Chapter Title */
 .tiptap h1 {
     font-family: var(--prose-font);
     font-size: 2.1rem;
@@ -113,7 +113,7 @@ body {
     line-height: 1.3;
 }
 
-/* Tiêu đề H2 - Cảnh / Phân đoạn */
+/* H2 - Scene / Section */
 .tiptap h2 {
     font-family: var(--prose-font);
     font-size: 1.5rem;
@@ -132,7 +132,7 @@ body {
     margin-bottom: 0.8rem;
 }
 
-/* Trích dẫn / Lời độc thoại nội tâm */
+/* Blockquote / Inner monologue */
 .tiptap blockquote {
     border-left: 3px solid var(--vscode-editorInfo-foreground, #3794ff);
     margin: 1.5rem 0;
@@ -145,7 +145,7 @@ body {
     text-indent: 0;
 }
 
-/* Đường phân cảnh (Scene Break) */
+/* Scene Break */
 .tiptap hr {
     border: none;
     text-align: center;
@@ -160,7 +160,7 @@ body {
     display: block;
 }
 
-/* Danh sách */
+/* Lists */
 .tiptap ul,
 .tiptap ol {
     padding-left: 2rem;
@@ -176,7 +176,7 @@ body {
     margin-bottom: 0;
 }
 
-/* In đậm / In nghiêng */
+/* Bold & Italic */
 .tiptap strong {
     font-weight: 700;
 }
@@ -190,9 +190,9 @@ body {
     background-color: var(--vscode-editor-selectionBackground, rgba(38, 79, 120, 0.6));
 }
 
-/* Placeholder khi trang trống */
+/* Empty page placeholder */
 .tiptap p.is-editor-empty:first-child::before {
-    content: 'Bắt đầu chắp bút tác phẩm của bạn tại đây...';
+    content: 'Begin crafting your story here...';
     color: var(--vscode-editorGhostText-foreground, rgba(128, 128, 128, 0.5));
     float: left;
     pointer-events: none;
@@ -200,4 +200,3 @@ body {
     text-indent: 0;
     font-style: italic;
 }
-

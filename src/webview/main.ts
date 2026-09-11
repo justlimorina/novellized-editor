@@ -28,7 +28,7 @@ function updateStats(text: string) {
     const cleanText = text.trim();
     const words = cleanText.length === 0 ? 0 : cleanText.split(/\s+/).filter(Boolean).length;
     const chars = cleanText.length;
-    statsEl.textContent = `${words.toLocaleString()} từ • ${chars.toLocaleString()} ký tự`;
+    statsEl.textContent = `${words.toLocaleString()} words • ${chars.toLocaleString()} characters`;
 }
 
 function getMarkdownFromEditor(ed: Editor): string {

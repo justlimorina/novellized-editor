@@ -109,7 +109,7 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
         const nonce = getNonce();
 
         return `<!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; font-src ${webview.cspSource} https:;">
@@ -120,10 +120,10 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
 <body>
     <div class="editor-shell">
         <div class="editor-toolbar">
-            <div class="document-stats" id="stats">0 từ • 0 ký tự</div>
+            <div class="document-stats" id="stats">0 words • 0 characters</div>
             <div class="toolbar-actions">
-                <button id="btn-toggle-raw" title="Chuyển sang chế độ Markdown thô (Monaco)">
-                    <span class="icon">📝</span> Markdown Thô
+                <button id="btn-toggle-raw" title="Switch to Raw Markdown mode (Monaco)">
+                    Raw Markdown
                 </button>
             </div>
         </div>
