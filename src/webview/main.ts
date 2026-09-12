@@ -42,13 +42,13 @@ function applyFocusMode(enabled: boolean) {
         document.body.classList.add('focus-mode-active');
         if (btnToggleFocus) {
             btnToggleFocus.classList.add('active');
-            btnToggleFocus.textContent = '🎯 Focus: ON';
+            btnToggleFocus.textContent = 'Focus: ON';
         }
     } else {
         document.body.classList.remove('focus-mode-active');
         if (btnToggleFocus) {
             btnToggleFocus.classList.remove('active');
-            btnToggleFocus.textContent = '🎯 Focus: OFF';
+            btnToggleFocus.textContent = 'Focus: OFF';
         }
     }
     savePreferences();
@@ -59,12 +59,12 @@ function applyTypewriterMode(enabled: boolean) {
     if (typewriterEnabled) {
         if (btnToggleTypewriter) {
             btnToggleTypewriter.classList.add('active');
-            btnToggleTypewriter.textContent = '📜 Typewriter: ON';
+            btnToggleTypewriter.textContent = 'Typewriter: ON';
         }
     } else {
         if (btnToggleTypewriter) {
             btnToggleTypewriter.classList.remove('active');
-            btnToggleTypewriter.textContent = '📜 Typewriter: OFF';
+            btnToggleTypewriter.textContent = 'Typewriter: OFF';
         }
     }
     savePreferences();

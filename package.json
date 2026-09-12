@@ -69,7 +69,7 @@
       },
       {
         "command": "novellized.createNewNovel",
-        "title": "Novellized: ✨ Create New Novel Project...",
+        "title": "Novellized: Create New Novel Project...",
         "icon": "$(sparkle)"
       },
       {
@@ -159,11 +159,11 @@
     "viewsWelcome": [
       {
         "view": "novellized.manuscriptView",
-        "contents": "No novel manuscript found in this workspace.\n[✨ Create New Novel Project](command:novellized.createNewNovel)"
+        "contents": "No novel manuscript found in this workspace.\n[Create New Novel Project](command:novellized.createNewNovel)"
       },
       {
         "view": "explorer",
-        "contents": "Start your literary project with Novellized.\n[✨ Create New Novel Project](command:novellized.createNewNovel)"
+        "contents": "Start your literary project with Novellized.\n[Create New Novel Project](command:novellized.createNewNovel)"
       }
     ]
   },
