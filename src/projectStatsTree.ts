@@ -32,7 +32,7 @@ export class ProjectStatsTreeProvider implements vscode.TreeDataProvider<vscode.
 
         // Progress bar (20 blocks)
         const filledBlocks = Math.min(20, Math.round((stats.totalWords / targetWordCount) * 20));
-        const progressBar = `[${'¦'.repeat(filledBlocks)}${'¦'.repeat(20 - filledBlocks)}] ${percent}%`;
+        const progressBar = `[${'Â·'.repeat(filledBlocks)}${'Â·'.repeat(20 - filledBlocks)}] ${percent}%`;
 
         // Reading time
         const readingMinutes = Math.ceil(stats.totalWords / 200);
@@ -75,7 +75,7 @@ export class ProjectStatsTreeProvider implements vscode.TreeDataProvider<vscode.
         items.push(timeItem);
 
         // 5. Structure Breakdown
-        const scaleDesc = `${stats.partsCount > 0 ? `${stats.partsCount} Parts • ` : ''}${stats.chaptersCount} Chapters • ${stats.scenesCount} Scenes`;
+        const scaleDesc = `${stats.partsCount > 0 ? `${stats.partsCount} Parts Â· ` : ''}${stats.chaptersCount} Chapters Â· ${stats.scenesCount} Scenes`;
         const scaleItem = new vscode.TreeItem(`Manuscript Scale`, vscode.TreeItemCollapsibleState.None);
         scaleItem.description = scaleDesc;
         scaleItem.iconPath = new vscode.ThemeIcon('layers');

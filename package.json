@@ -121,6 +121,21 @@
         "command": "novellized.deleteChapter",
         "title": "Novellized: Delete Chapter",
         "icon": "$(trash)"
+      },
+      {
+        "command": "novellized.exportEpub",
+        "title": "Novellized: Export Manuscript as EPUB (.epub)...",
+        "icon": "$(book)"
+      },
+      {
+        "command": "novellized.exportPdf",
+        "title": "Novellized: Export Manuscript as PDF (.pdf)...",
+        "icon": "$(file-pdf)"
+      },
+      {
+        "command": "novellized.previewPrintableBook",
+        "title": "Novellized: Open Printable Book Preview (HTML / Print)",
+        "icon": "$(eye)"
       }
     ],
     "menus": {
@@ -140,22 +155,32 @@
         {
           "command": "novellized.refreshManuscript",
           "when": "view == novellized.manuscriptView || view == novellized.projectStatsView || view == novellized.bibleView",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "novellized.exportEpub",
+          "when": "view == novellized.manuscriptView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "novellized.exportPdf",
+          "when": "view == novellized.manuscriptView",
+          "group": "navigation@3"
         },
         {
           "command": "novellized.importDocx",
           "when": "view == novellized.manuscriptView",
-          "group": "navigation"
+          "group": "navigation@4"
         },
         {
           "command": "novellized.addChapter",
           "when": "view == novellized.manuscriptView",
-          "group": "navigation"
+          "group": "navigation@5"
         },
         {
           "command": "novellized.addScene",
           "when": "view == novellized.manuscriptView",
-          "group": "navigation"
+          "group": "navigation@6"
         }
       ],
       "view/item/context": [
@@ -238,10 +263,13 @@
     "@tiptap/extension-bubble-menu": "^2.27.3",
     "@tiptap/extension-focus": "^2.27.3",
     "@tiptap/starter-kit": "^2.11.5",
+    "jszip": "^3.10.2",
     "mammoth": "^1.12.2",
+    "marked": "^18.0.12",
     "tiptap-markdown": "^0.8.10"
   },
   "devDependencies": {
+    "@types/jszip": "^3.4.0",
     "@types/node": "^20.11.24",
     "@types/vscode": "^1.80.0",
     "esbuild": "^0.25.0",

@@ -6,6 +6,7 @@ import { ManuscriptTreeProvider, ManuscriptTreeItem } from './manuscriptTree';
 import { ProjectStatsTreeProvider } from './projectStatsTree';
 import { BibleTreeProvider } from './bibleTree';
 import { importDocxManuscript, copyAiOrganizePrompt } from './docxImporter';
+import { exportToEpub, exportToPdf, openPrintableBookView } from './exporter';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
@@ -160,6 +161,25 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('novellized.copyAiPrompt', async (uri?: vscode.Uri) => {
             await copyAiOrganizePrompt(uri);
+        })
+    );
+
+    // Export & Publishing Commands
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.exportEpub', async (item?: any) => {
+            await exportToEpub(item?.resourceUri);
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.exportPdf', async (item?: any) => {
+            await exportToPdf(item?.resourceUri);
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.previewPrintableBook', async (item?: any) => {
+            await openPrintableBookView(item?.resourceUri);
         })
     );
 }
