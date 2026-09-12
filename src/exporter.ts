@@ -865,3 +865,4 @@ function toXhtml(html: string): string {
         .replace(/<br\b([^>]*?)>/gi, '<br$1/>')
         .replace(/<img\b([^>]*?)>/gi, '<img$1/>');
 }
+
