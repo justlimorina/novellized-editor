@@ -106,6 +106,21 @@
         "command": "novellized.copyAiPrompt",
         "title": "Novellized: Copy AI Organization Prompt for Staged Document...",
         "icon": "$(sparkle)"
+      },
+      {
+        "command": "novellized.renameChapter",
+        "title": "Novellized: Rename Chapter...",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "novellized.renameScene",
+        "title": "Novellized: Rename Scene...",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "novellized.deleteChapter",
+        "title": "Novellized: Delete Chapter",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -145,9 +160,39 @@
       ],
       "view/item/context": [
         {
+          "command": "novellized.renameChapter",
+          "when": "view == novellized.manuscriptView && viewItem == chapter",
+          "group": "inline@1"
+        },
+        {
+          "command": "novellized.renameChapter",
+          "when": "view == novellized.manuscriptView && viewItem == chapter",
+          "group": "7_modification@1"
+        },
+        {
           "command": "novellized.addScene",
           "when": "view == novellized.manuscriptView && viewItem == chapter",
-          "group": "inline"
+          "group": "inline@2"
+        },
+        {
+          "command": "novellized.addScene",
+          "when": "view == novellized.manuscriptView && viewItem == chapter",
+          "group": "7_modification@2"
+        },
+        {
+          "command": "novellized.deleteChapter",
+          "when": "view == novellized.manuscriptView && viewItem == chapter",
+          "group": "9_cutcopypaste"
+        },
+        {
+          "command": "novellized.renameScene",
+          "when": "view == novellized.manuscriptView && viewItem == scene",
+          "group": "inline@1"
+        },
+        {
+          "command": "novellized.renameScene",
+          "when": "view == novellized.manuscriptView && viewItem == scene",
+          "group": "7_modification@1"
         },
         {
           "command": "novellized.addChapter",
@@ -157,12 +202,12 @@
         {
           "command": "novellized.openAsLiveView",
           "when": "view == novellized.manuscriptView && viewItem == scene",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "novellized.openAsRawMarkdown",
           "when": "view == novellized.manuscriptView && viewItem == scene",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "novellized.deleteScene",

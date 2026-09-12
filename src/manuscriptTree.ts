@@ -87,10 +87,9 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
                 const items: ManuscriptTreeItem[] = [];
                 for (const [name] of chapterDirs) {
                     const chapUri = vscode.Uri.joinPath(rootUri, name);
-                    const words = await this.computeFolderWordCount(chapUri);
-                    const formattedName = name.replace(/^chapter[-_]/i, 'Chapter ').replace(/[-_]/g, ' ');
+                    const { title, words } = await this.getChapterDetails(chapUri, name);
                     items.push(new ManuscriptTreeItem(
-                        formattedName,
+                        title,
                         'chapter',
                         chapUri,
                         vscode.TreeItemCollapsibleState.Expanded,
@@ -125,10 +124,9 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
             const items: ManuscriptTreeItem[] = [];
             for (const [name] of chapterDirs) {
                 const chapUri = vscode.Uri.joinPath(element.resourceUri, name);
-                const words = await this.computeFolderWordCount(chapUri);
-                const formattedName = name.replace(/^chapter[-_]/i, 'Chapter ').replace(/[-_]/g, ' ');
+                const { title, words } = await this.getChapterDetails(chapUri, name);
                 items.push(new ManuscriptTreeItem(
-                    formattedName,
+                    title,
                     'chapter',
                     chapUri,
                     vscode.TreeItemCollapsibleState.Expanded,
@@ -313,6 +311,234 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
         } catch {
             const doc = await vscode.workspace.openTextDocument(firstSceneUri);
             await vscode.window.showTextDocument(doc);
+        }
+    }
+
+    public async getChapterDetails(chapUri: vscode.Uri, dirName: string): Promise<{ title: string; words: number }> {
+        const fallbackTitle = dirName.replace(/^chapter[-_]/i, 'Chapter ').replace(/[-_]/g, ' ');
+        const words = await this.computeFolderWordCount(chapUri);
+
+        try {
+            const entries = await this.readDirSafe(chapUri);
+            const sceneFiles = entries.filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.md'));
+            if (sceneFiles.length === 0) {
+                return { title: fallbackTitle, words };
+            }
+
+            sceneFiles.sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
+            const firstSceneUri = vscode.Uri.joinPath(chapUri, sceneFiles[0][0]);
+
+            const openDoc = vscode.workspace.textDocuments.find(d => d.uri.toString() === firstSceneUri.toString());
+            let content = '';
+            if (openDoc) {
+                content = openDoc.getText();
+            } else {
+                const raw = await vscode.workspace.fs.readFile(firstSceneUri);
+                content = Buffer.from(raw).toString('utf8');
+            }
+
+            const lines = content.split('\n');
+            // Look for ## Chapter heading
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('## ')) {
+                    const heading = trimmed.replace(/^##\s*/, '').trim();
+                    if (heading.length > 0) {
+                        return { title: heading, words };
+                    }
+                }
+            }
+
+            // Fallback: check # Chapter / # Chương if no ## was present
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('# ') && !trimmed.startsWith('## ')) {
+                    const heading = trimmed.replace(/^#\s*/, '').trim();
+                    if (/^(?:chapter|chương|hồi|volume|tập)\b/i.test(heading)) {
+                        return { title: heading, words };
+                    }
+                }
+            }
+        } catch {
+            // Ignore error and use fallback
+        }
+
+        return { title: fallbackTitle, words };
+    }
+
+    public async renameChapter(targetItem?: ManuscriptTreeItem): Promise<void> {
+        let chapFolder: vscode.Uri | undefined;
+        let currentLabel = '';
+
+        if (targetItem && targetItem.itemType === 'chapter') {
+            chapFolder = targetItem.resourceUri;
+            currentLabel = targetItem.label;
+        } else {
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (!workspaceFolders || workspaceFolders.length === 0) return;
+            const rootUri = workspaceFolders[0].uri;
+            const chapters = await this.findAllChapters(rootUri);
+            if (chapters.length === 0) return;
+
+            const picked = await vscode.window.showQuickPick(
+                chapters.map(c => ({ label: c.label, uri: c.uri })),
+                { placeHolder: 'Select chapter to rename' }
+            );
+            if (!picked) return;
+            chapFolder = picked.uri;
+            currentLabel = picked.label;
+        }
+
+        const newTitle = await vscode.window.showInputBox({
+            title: 'Rename Chapter',
+            prompt: 'Enter chapter title (e.g., Chapter 1: The Awakening)',
+            value: currentLabel,
+            validateInput: value => (!value || value.trim().length === 0) ? 'Chapter title cannot be empty' : null
+        });
+        if (!newTitle || newTitle.trim() === currentLabel) return;
+        const trimmedNewTitle = newTitle.trim();
+
+        const entries = await this.readDirSafe(chapFolder);
+        const sceneFiles = entries.filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.md'));
+        sceneFiles.sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
+
+        if (sceneFiles.length === 0) {
+            const scene01Uri = vscode.Uri.joinPath(chapFolder, 'scene_01.md');
+            const initialContent = `## ${trimmedNewTitle}\n\n### Scene 1: Opening\n\n`;
+            await vscode.workspace.fs.writeFile(scene01Uri, new TextEncoder().encode(initialContent));
+        } else {
+            const firstSceneUri = vscode.Uri.joinPath(chapFolder, sceneFiles[0][0]);
+            const openDoc = vscode.workspace.textDocuments.find(d => d.uri.toString() === firstSceneUri.toString());
+            let content = '';
+            if (openDoc) {
+                content = openDoc.getText();
+            } else {
+                const raw = await vscode.workspace.fs.readFile(firstSceneUri);
+                content = Buffer.from(raw).toString('utf8');
+            }
+
+            const lines = content.split('\n');
+            let headingIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const trimmed = lines[i].trim();
+                if (trimmed.startsWith('## ') || (/^#\s+/i.test(trimmed) && /^(?:chapter|chương|hồi)\b/i.test(trimmed.replace(/^#+\s*/, '')))) {
+                    headingIndex = i;
+                    break;
+                }
+            }
+
+            let newContent = '';
+            if (headingIndex !== -1) {
+                lines[headingIndex] = `## ${trimmedNewTitle}`;
+                newContent = lines.join('\n');
+            } else {
+                newContent = `## ${trimmedNewTitle}\n\n` + content;
+            }
+
+            const doc = await vscode.workspace.openTextDocument(firstSceneUri);
+            const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
+            const edit = new vscode.WorkspaceEdit();
+            edit.replace(firstSceneUri, fullRange, newContent);
+            await vscode.workspace.applyEdit(edit);
+            await doc.save();
+        }
+
+        this.refresh();
+        vscode.window.showInformationMessage(`Chapter renamed to: "${trimmedNewTitle}"`);
+    }
+
+    public async renameScene(targetItem?: ManuscriptTreeItem): Promise<void> {
+        if (!targetItem || targetItem.itemType !== 'scene') return;
+
+        const sceneUri = targetItem.resourceUri;
+        const currentLabel = targetItem.label;
+
+        const newTitle = await vscode.window.showInputBox({
+            title: 'Rename Scene',
+            prompt: 'Enter scene title (e.g., Scene 1: Arrival)',
+            value: currentLabel,
+            validateInput: value => (!value || value.trim().length === 0) ? 'Scene title cannot be empty' : null
+        });
+        if (!newTitle || newTitle.trim() === currentLabel) return;
+        const trimmedNewTitle = newTitle.trim();
+
+        const doc = await vscode.workspace.openTextDocument(sceneUri);
+        const content = doc.getText();
+        const lines = content.split('\n');
+
+        let sceneHeadingIndex = -1;
+        for (let i = 0; i < lines.length; i++) {
+            const trimmed = lines[i].trim();
+            if (trimmed.startsWith('### ')) {
+                sceneHeadingIndex = i;
+                break;
+            }
+        }
+
+        let newContent = '';
+        if (sceneHeadingIndex !== -1) {
+            lines[sceneHeadingIndex] = `### ${trimmedNewTitle}`;
+            newContent = lines.join('\n');
+        } else {
+            let insertPos = 0;
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].trim().startsWith('#')) {
+                    insertPos = i + 1;
+                } else if (lines[i].trim().length > 0) {
+                    break;
+                }
+            }
+            if (insertPos > 0) {
+                lines.splice(insertPos, 0, '', `### ${trimmedNewTitle}`, '');
+                newContent = lines.join('\n');
+            } else {
+                newContent = `### ${trimmedNewTitle}\n\n` + content;
+            }
+        }
+
+        const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(content.length));
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(sceneUri, fullRange, newContent);
+        await vscode.workspace.applyEdit(edit);
+        await doc.save();
+
+        this.refresh();
+        vscode.window.showInformationMessage(`Scene renamed to: "${trimmedNewTitle}"`);
+    }
+
+    public async deleteChapter(targetItem?: ManuscriptTreeItem): Promise<void> {
+        let chapFolder: vscode.Uri | undefined;
+        let chapName = '';
+
+        if (targetItem && targetItem.itemType === 'chapter') {
+            chapFolder = targetItem.resourceUri;
+            chapName = targetItem.label;
+        } else {
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (!workspaceFolders || workspaceFolders.length === 0) return;
+            const rootUri = workspaceFolders[0].uri;
+            const chapters = await this.findAllChapters(rootUri);
+            if (chapters.length === 0) return;
+
+            const picked = await vscode.window.showQuickPick(
+                chapters.map(c => ({ label: c.label, uri: c.uri })),
+                { placeHolder: 'Select chapter to delete' }
+            );
+            if (!picked) return;
+            chapFolder = picked.uri;
+            chapName = picked.label;
+        }
+
+        const confirmation = await vscode.window.showWarningMessage(
+            `Are you sure you want to delete chapter "${chapName}" and all scenes inside it?`,
+            { modal: true },
+            'Delete Chapter'
+        );
+
+        if (confirmation === 'Delete Chapter') {
+            await vscode.workspace.fs.delete(chapFolder, { recursive: true, useTrash: true });
+            this.refresh();
+            vscode.window.showInformationMessage(`Deleted chapter "${chapName}".`);
         }
     }
 

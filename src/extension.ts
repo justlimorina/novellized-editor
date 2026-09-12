@@ -123,6 +123,28 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.renameChapter', async (item?: ManuscriptTreeItem) => {
+            await manuscriptProvider.renameChapter(item);
+            refreshAll();
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.renameScene', async (item?: ManuscriptTreeItem) => {
+            await manuscriptProvider.renameScene(item);
+            refreshAll();
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.deleteChapter', async (item?: ManuscriptTreeItem) => {
+            await manuscriptProvider.deleteChapter(item);
+            refreshAll();
+        })
+    );
+
+
+    context.subscriptions.push(
         vscode.commands.registerCommand('novellized.createMissingBibleDoc', async (relativePath: string) => {
             await bibleProvider.createMissingDoc(relativePath);
         })
