@@ -319,6 +319,19 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
         const words = await this.computeFolderWordCount(chapUri);
 
         try {
+            // 1. Check chapter.json if author or rename explicitly set it
+            const metaUri = vscode.Uri.joinPath(chapUri, 'chapter.json');
+            try {
+                const rawMeta = await vscode.workspace.fs.readFile(metaUri);
+                const meta = JSON.parse(Buffer.from(rawMeta).toString('utf8'));
+                if (meta && typeof meta.title === 'string' && meta.title.trim().length > 0) {
+                    return { title: meta.title.trim(), words };
+                }
+            } catch {
+                // No chapter.json, proceed to inspect markdown content
+            }
+
+            // 2. Inspect the first scene file
             const entries = await this.readDirSafe(chapUri);
             const sceneFiles = entries.filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.md'));
             if (sceneFiles.length === 0) {
@@ -338,23 +351,37 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
             }
 
             const lines = content.split('\n');
-            // Look for ## Chapter heading
+
+            // 2a. Priority 1: Line explicitly identifying a chapter (e.g. "# Chương 1: ...", "## Chapter 1: ...")
             for (const line of lines) {
                 const trimmed = line.trim();
-                if (trimmed.startsWith('## ')) {
-                    const heading = trimmed.replace(/^##\s*/, '').trim();
+                if (/^#+\s*(?:chapter|chương|hồi|act)\b/i.test(trimmed)) {
+                    const heading = trimmed.replace(/^#+\s*/, '').trim();
                     if (heading.length > 0) {
                         return { title: heading, words };
                     }
                 }
             }
 
-            // Fallback: check # Chapter / # Chương if no ## was present
+            // 2b. Priority 2: First ## heading that is not a Part or Volume
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('## ')) {
+                    const heading = trimmed.replace(/^##\s*/, '').trim();
+                    const isPart = /^(?:part|phần|volume|quyển)\s+\d+/i.test(heading);
+                    if (!isPart && heading.length > 0) {
+                        return { title: heading, words };
+                    }
+                }
+            }
+
+            // 2c. Priority 3: First # heading that is not a Part or Volume
             for (const line of lines) {
                 const trimmed = line.trim();
                 if (trimmed.startsWith('# ') && !trimmed.startsWith('## ')) {
                     const heading = trimmed.replace(/^#\s*/, '').trim();
-                    if (/^(?:chapter|chương|hồi|volume|tập)\b/i.test(heading)) {
+                    const isPart = /^(?:part|phần|volume|quyển)\s+\d+/i.test(heading);
+                    if (!isPart && heading.length > 0) {
                         return { title: heading, words };
                     }
                 }
@@ -391,20 +418,27 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
 
         const newTitle = await vscode.window.showInputBox({
             title: 'Rename Chapter',
-            prompt: 'Enter chapter title (e.g., Chapter 1: The Awakening)',
+            prompt: 'Enter chapter title (e.g., Chapter 1: The Awakening / Chương 1: Sự khởi đầu)',
             value: currentLabel,
             validateInput: value => (!value || value.trim().length === 0) ? 'Chapter title cannot be empty' : null
         });
         if (!newTitle || newTitle.trim() === currentLabel) return;
         const trimmedNewTitle = newTitle.trim();
+        const cleanTitle = trimmedNewTitle.replace(/^#+\s*/, '');
 
+        // 1. Persist chapter title in chapter.json
+        const metaUri = vscode.Uri.joinPath(chapFolder, 'chapter.json');
+        const metaContent = JSON.stringify({ title: cleanTitle }, null, 2);
+        await vscode.workspace.fs.writeFile(metaUri, new TextEncoder().encode(metaContent));
+
+        // 2. Check opening scene file to synchronize heading if already present
         const entries = await this.readDirSafe(chapFolder);
         const sceneFiles = entries.filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.md'));
         sceneFiles.sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
 
         if (sceneFiles.length === 0) {
             const scene01Uri = vscode.Uri.joinPath(chapFolder, 'scene_01.md');
-            const initialContent = `## ${trimmedNewTitle}\n\n### Scene 1: Opening\n\n`;
+            const initialContent = `# ${cleanTitle}\n\n`;
             await vscode.workspace.fs.writeFile(scene01Uri, new TextEncoder().encode(initialContent));
         } else {
             const firstSceneUri = vscode.Uri.joinPath(chapFolder, sceneFiles[0][0]);
@@ -419,32 +453,32 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
 
             const lines = content.split('\n');
             let headingIndex = -1;
+            let currentPrefix = '# ';
             for (let i = 0; i < lines.length; i++) {
                 const trimmed = lines[i].trim();
-                if (trimmed.startsWith('## ') || (/^#\s+/i.test(trimmed) && /^(?:chapter|chương|hồi)\b/i.test(trimmed.replace(/^#+\s*/, '')))) {
+                const m = trimmed.match(/^(#+)\s*(?:chapter|chương|hồi|act)\b/i);
+                if (m) {
                     headingIndex = i;
+                    currentPrefix = m[1] + ' '; // Preserve the author's preferred heading level (# or ##)!
                     break;
                 }
             }
 
-            let newContent = '';
             if (headingIndex !== -1) {
-                lines[headingIndex] = `## ${trimmedNewTitle}`;
-                newContent = lines.join('\n');
-            } else {
-                newContent = `## ${trimmedNewTitle}\n\n` + content;
-            }
+                lines[headingIndex] = `${currentPrefix}${cleanTitle}`;
+                const newContent = lines.join('\n');
 
-            const doc = await vscode.workspace.openTextDocument(firstSceneUri);
-            const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
-            const edit = new vscode.WorkspaceEdit();
-            edit.replace(firstSceneUri, fullRange, newContent);
-            await vscode.workspace.applyEdit(edit);
-            await doc.save();
+                const doc = await vscode.workspace.openTextDocument(firstSceneUri);
+                const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
+                const edit = new vscode.WorkspaceEdit();
+                edit.replace(firstSceneUri, fullRange, newContent);
+                await vscode.workspace.applyEdit(edit);
+                await doc.save();
+            }
         }
 
         this.refresh();
-        vscode.window.showInformationMessage(`Chapter renamed to: "${trimmedNewTitle}"`);
+        vscode.window.showInformationMessage(`Chapter renamed to: "${cleanTitle}"`);
     }
 
     public async renameScene(targetItem?: ManuscriptTreeItem): Promise<void> {
@@ -455,31 +489,42 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
 
         const newTitle = await vscode.window.showInputBox({
             title: 'Rename Scene',
-            prompt: 'Enter scene title (e.g., Scene 1: Arrival)',
+            prompt: 'Enter scene title (e.g., Scene 1: Arrival / Cảnh 1: Khởi hành)',
             value: currentLabel,
             validateInput: value => (!value || value.trim().length === 0) ? 'Scene title cannot be empty' : null
         });
         if (!newTitle || newTitle.trim() === currentLabel) return;
         const trimmedNewTitle = newTitle.trim();
+        const cleanTitle = trimmedNewTitle.replace(/^#+\s*/, '');
 
         const doc = await vscode.workspace.openTextDocument(sceneUri);
         const content = doc.getText();
         const lines = content.split('\n');
 
         let sceneHeadingIndex = -1;
+        let scenePrefix = '### ';
         for (let i = 0; i < lines.length; i++) {
             const trimmed = lines[i].trim();
-            if (trimmed.startsWith('### ')) {
-                sceneHeadingIndex = i;
-                break;
+            if (trimmed.startsWith('#')) {
+                const isChapter = /^#+\s*(?:chapter|chương|hồi|act)\b/i.test(trimmed);
+                const isPart = /^#+\s*(?:part|phần|volume|quyển)\s+\d+/i.test(trimmed);
+                if (!isChapter && !isPart) {
+                    sceneHeadingIndex = i;
+                    const m = trimmed.match(/^(#+)\s*/);
+                    if (m) {
+                        scenePrefix = m[1] + ' ';
+                    }
+                    break;
+                }
             }
         }
 
         let newContent = '';
         if (sceneHeadingIndex !== -1) {
-            lines[sceneHeadingIndex] = `### ${trimmedNewTitle}`;
+            lines[sceneHeadingIndex] = `${scenePrefix}${cleanTitle}`;
             newContent = lines.join('\n');
         } else {
+            // Find insertion position after any chapter/part headers
             let insertPos = 0;
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].trim().startsWith('#')) {
@@ -489,10 +534,10 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
                 }
             }
             if (insertPos > 0) {
-                lines.splice(insertPos, 0, '', `### ${trimmedNewTitle}`, '');
+                lines.splice(insertPos, 0, '', `### ${cleanTitle}`, '');
                 newContent = lines.join('\n');
             } else {
-                newContent = `### ${trimmedNewTitle}\n\n` + content;
+                newContent = `### ${cleanTitle}\n\n` + content;
             }
         }
 
@@ -503,7 +548,7 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
         await doc.save();
 
         this.refresh();
-        vscode.window.showInformationMessage(`Scene renamed to: "${trimmedNewTitle}"`);
+        vscode.window.showInformationMessage(`Scene renamed to: "${cleanTitle}"`);
     }
 
     public async deleteChapter(targetItem?: ManuscriptTreeItem): Promise<void> {

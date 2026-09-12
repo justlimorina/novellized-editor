@@ -18,13 +18,15 @@ export function extractSceneTitle(content: string, fallback: string): string {
         }
     }
 
-    // 2. Fallback: Check for any heading that is NOT a Part or Chapter heading
+    // 2. Fallback: Check for any heading that is NOT an explicit Chapter or Part header
     for (const line of lines) {
         const trimmed = line.trim();
         if (trimmed.startsWith('#')) {
             const title = trimmed.replace(/^#+\s*/, '').trim();
-            // Ignore Part and Chapter headers
-            if (!/^(?:part|chapter|chương|hồi|volume|tập)\b/i.test(title) && title.length > 0) {
+            // Ignore lines that designate Chapter or Part (e.g. Chapter 1, Chương 1, Hồi 1, Part 1, Phần 1)
+            const isChapter = /^#+\s*(?:chapter|chương|hồi|act)\b/i.test(trimmed);
+            const isPart = /^#+\s*(?:part|phần|volume|quyển)\s+\d+/i.test(trimmed);
+            if (!isChapter && !isPart && title.length > 0) {
                 return title;
             }
         }
