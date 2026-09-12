@@ -5,7 +5,7 @@ import { createNewNovelProject } from './projectInit';
 import { ManuscriptTreeProvider, ManuscriptTreeItem } from './manuscriptTree';
 import { ProjectStatsTreeProvider } from './projectStatsTree';
 import { BibleTreeProvider } from './bibleTree';
-import { importDocxManuscript } from './docxImporter';
+import { importDocxManuscript, copyAiOrganizePrompt } from './docxImporter';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
@@ -132,6 +132,12 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('novellized.importDocx', async () => {
             await importDocxManuscript();
             refreshAll();
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.copyAiPrompt', async (uri?: vscode.Uri) => {
+            await copyAiOrganizePrompt(uri);
         })
     );
 }

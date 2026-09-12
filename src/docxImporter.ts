@@ -45,28 +45,52 @@ export async function importDocxManuscript(): Promise<void> {
         targetRoot = pickedFolders[0];
     }
 
-    // 3. Choose import strategy
-    const modePick = await vscode.window.showQuickPick([
+    // 3. User chooses the intent / destination for this file
+    const destinationPick = await vscode.window.showQuickPick([
         {
-            label: '$(split-horizontal) Smart Chapter Splitter (Recommended)',
-            description: 'Automatically divide into chapters & scenes',
-            detail: 'Detects Chapter/Chuong headings, scenes, and character bibles to build a full project structure.',
-            value: 'split' as const
+            label: '$(sparkle) Staging for AI Agent (inbox/) - Recommended',
+            description: 'Save to inbox/ & auto-copy AI classification prompt',
+            detail: 'Best for mixed notes, raw worldbuilding, or full drafts. AI Agent will organize it cleanly.',
+            value: 'inbox' as const
         },
         {
-            label: '$(file-text) Single Scene / File',
-            description: 'Import as a single .md file',
-            detail: 'Converts entire Word file into one markdown file without splitting.',
-            value: 'single' as const
+            label: '$(globe) Worldbuilding & Lore (docs/worldbuilding.md)',
+            description: 'Save directly to worldbuilding document',
+            detail: 'Best for magic systems, geography, factions, power levels, or historical setting notes.',
+            value: 'worldbuilding' as const
+        },
+        {
+            label: '$(person) Character Bible (docs/characters.md)',
+            description: 'Save directly to character profiles document',
+            detail: 'Best for character sheets, appearance descriptions, backstories, and motivations.',
+            value: 'characters' as const
+        },
+        {
+            label: '$(milestone) Master Outline (docs/outline.md)',
+            description: 'Save directly to plot outline document',
+            detail: 'Best for 3-act story beats, synopses, and chapter milestones.',
+            value: 'outline' as const
+        },
+        {
+            label: '$(file-text) Single Story Scene (Manuscript)',
+            description: 'Import as a single .md scene inside a chapter',
+            detail: 'Best for an individual written scene or short narrative passage.',
+            value: 'scene' as const
+        },
+        {
+            label: '$(split-horizontal) Auto-Split by Chapters (Heuristic)',
+            description: 'Split into chapter_01, chapter_02... by headings',
+            detail: 'Use only if the Word file is strictly formatted with Chapter 1, Chapter 2 headings.',
+            value: 'heuristic_split' as const
         }
     ], {
-        title: 'Novellized: Import Strategy',
-        placeHolder: 'Choose how to import this Word manuscript'
+        title: 'Novellized: What kind of content is this?',
+        placeHolder: 'Select where this Word document belongs in your novel project'
     });
 
-    if (!modePick) return;
+    if (!destinationPick) return;
 
-    // 4. Progress notification
+    // 4. Progress notification & conversion
     await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: `Novellized: Importing "${docxFilename}.docx"...`,
@@ -74,7 +98,6 @@ export async function importDocxManuscript(): Promise<void> {
     }, async (progress) => {
         progress.report({ message: 'Converting Word document to Markdown...' });
 
-        // Read raw buffer and convert with mammoth
         const rawBytes = await vscode.workspace.fs.readFile(docxUri);
         const buffer = Buffer.from(rawBytes);
         const conversionResult = await mammoth.convertToMarkdown({ buffer });
@@ -86,91 +109,134 @@ export async function importDocxManuscript(): Promise<void> {
         }
 
         const encoder = new TextEncoder();
-        let firstSceneUriToOpen: vscode.Uri | undefined;
+        const totalWords = countWords(rawMarkdown);
+        let openedUri: vscode.Uri | undefined;
 
-        if (modePick.value === 'single') {
-            // Mode: Single File
-            const targetFilename = `${docxFilename.replace(/[^a-zA-Z0-9_\-\.]/g, '_')}.md`;
-            const destUri = vscode.Uri.joinPath(targetRoot, targetFilename);
-            await vscode.workspace.fs.writeFile(destUri, encoder.encode(rawMarkdown));
-            firstSceneUriToOpen = destUri;
+        switch (destinationPick.value) {
+            case 'inbox': {
+                // Save to inbox/[filename].md
+                const inboxDir = vscode.Uri.joinPath(targetRoot, 'inbox');
+                await vscode.workspace.fs.createDirectory(inboxDir);
 
-            const totalWords = countWords(rawMarkdown);
-            vscode.window.showInformationMessage(
-                `Successfully imported "${targetFilename}" (${totalWords.toLocaleString()} words).`
-            );
-        } else {
-            // Mode: Smart Chapter Splitter
-            progress.report({ message: 'Analyzing chapters, scenes, and story bible sections...' });
-            const sections = splitMarkdownIntoSections(rawMarkdown, docxFilename);
+                const sanitizedName = docxFilename.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+                const targetUri = vscode.Uri.joinPath(inboxDir, `${sanitizedName}.md`);
+                await vscode.workspace.fs.writeFile(targetUri, encoder.encode(rawMarkdown + '\n'));
+                openedUri = targetUri;
 
-            let importedChapters = 0;
-            let importedScenes = 0;
-            let totalImportedWords = 0;
+                // Generate AI Prompt & copy to clipboard
+                const aiPrompt = generateAiOrganizePrompt(docxFilename, `inbox/${sanitizedName}.md`);
+                await vscode.env.clipboard.writeText(aiPrompt);
 
-            // Ensure .novel/project.json exists
-            await ensureProjectJson(targetRoot, docxFilename, totalImportedWords);
+                const action = await vscode.window.showInformationMessage(
+                    `Imported to inbox/${sanitizedName}.md (${totalWords.toLocaleString()} words). AI instruction prompt copied to clipboard!`,
+                    'View AI Prompt',
+                    'Open in Live View'
+                );
 
-            let currentChapterIndex = 0;
-
-            for (const sec of sections) {
-                const secContent = sec.lines.join('\n').trim();
-                const secWords = countWords(secContent);
-                totalImportedWords += secWords;
-
-                if (sec.type === 'characters') {
-                    const charUri = vscode.Uri.joinPath(targetRoot, 'docs', 'characters.md');
-                    await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(targetRoot, 'docs'));
-                    await vscode.workspace.fs.writeFile(charUri, encoder.encode(secContent + '\n'));
-                } else if (sec.type === 'worldbuilding') {
-                    const worldUri = vscode.Uri.joinPath(targetRoot, 'docs', 'worldbuilding.md');
-                    await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(targetRoot, 'docs'));
-                    await vscode.workspace.fs.writeFile(worldUri, encoder.encode(secContent + '\n'));
-                } else if (sec.type === 'outline') {
-                    const outlineUri = vscode.Uri.joinPath(targetRoot, 'docs', 'outline.md');
-                    await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(targetRoot, 'docs'));
-                    await vscode.workspace.fs.writeFile(outlineUri, encoder.encode(secContent + '\n'));
-                } else {
-                    // Chapter / Scene
-                    currentChapterIndex++;
-                    importedChapters++;
-
-                    const chapDirName = `chapter_${String(currentChapterIndex).padStart(2, '0')}`;
-                    const chapFolderUri = vscode.Uri.joinPath(targetRoot, chapDirName);
-                    await vscode.workspace.fs.createDirectory(chapFolderUri);
-
-                    // Check if chapter content has internal scene breaks (? or --- or ***)
-                    const scenes = splitChapterIntoScenes(secContent, sec.title);
-                    let sceneIndex = 0;
-
-                    for (const sc of scenes) {
-                        sceneIndex++;
-                        importedScenes++;
-                        const sceneFilename = `scene_${String(sceneIndex).padStart(2, '0')}.md`;
-                        const sceneUri = vscode.Uri.joinPath(chapFolderUri, sceneFilename);
-                        await vscode.workspace.fs.writeFile(sceneUri, encoder.encode(sc + '\n'));
-
-                        if (!firstSceneUriToOpen) {
-                            firstSceneUriToOpen = sceneUri;
-                        }
-                    }
+                if (action === 'View AI Prompt') {
+                    const doc = await vscode.workspace.openTextDocument({
+                        content: aiPrompt,
+                        language: 'markdown'
+                    });
+                    await vscode.window.showTextDocument(doc);
                 }
+                break;
             }
 
-            // Update project.json with actual target and words
-            await ensureProjectJson(targetRoot, docxFilename, totalImportedWords);
+            case 'worldbuilding': {
+                const docsDir = vscode.Uri.joinPath(targetRoot, 'docs');
+                await vscode.workspace.fs.createDirectory(docsDir);
+                const targetUri = vscode.Uri.joinPath(docsDir, 'worldbuilding.md');
+                await appendOrWriteDoc(targetUri, rawMarkdown, docxFilename, encoder);
+                openedUri = targetUri;
+                vscode.window.showInformationMessage(
+                    `Appended ${totalWords.toLocaleString()} words to docs/worldbuilding.md!`
+                );
+                break;
+            }
 
-            vscode.window.showInformationMessage(
-                `Successfully imported from "${docxFilename}.docx": ${importedChapters} chapter(s), ${importedScenes} scene(s) (${totalImportedWords.toLocaleString()} words)!`
-            );
+            case 'characters': {
+                const docsDir = vscode.Uri.joinPath(targetRoot, 'docs');
+                await vscode.workspace.fs.createDirectory(docsDir);
+                const targetUri = vscode.Uri.joinPath(docsDir, 'characters.md');
+                await appendOrWriteDoc(targetUri, rawMarkdown, docxFilename, encoder);
+                openedUri = targetUri;
+                vscode.window.showInformationMessage(
+                    `Appended ${totalWords.toLocaleString()} words to docs/characters.md!`
+                );
+                break;
+            }
+
+            case 'outline': {
+                const docsDir = vscode.Uri.joinPath(targetRoot, 'docs');
+                await vscode.workspace.fs.createDirectory(docsDir);
+                const targetUri = vscode.Uri.joinPath(docsDir, 'outline.md');
+                await appendOrWriteDoc(targetUri, rawMarkdown, docxFilename, encoder);
+                openedUri = targetUri;
+                vscode.window.showInformationMessage(
+                    `Appended ${totalWords.toLocaleString()} words to docs/outline.md!`
+                );
+                break;
+            }
+
+            case 'scene': {
+                const chapterUri = await pickOrCreateChapter(targetRoot);
+                if (!chapterUri) return;
+
+                const entries = await vscode.workspace.fs.readDirectory(chapterUri);
+                const sceneNumbers = entries
+                    .filter(([name]) => /^scene[-_]\d+/i.test(name))
+                    .map(([name]) => {
+                        const match = name.match(/^scene[-_](\d+)/i);
+                        return match ? parseInt(match[1], 10) : 0;
+                    });
+                const nextIdx = (sceneNumbers.length > 0 ? Math.max(...sceneNumbers) : 0) + 1;
+                const sceneFilename = `scene_${String(nextIdx).padStart(2, '0')}.md`;
+                const sceneUri = vscode.Uri.joinPath(chapterUri, sceneFilename);
+
+                await vscode.workspace.fs.writeFile(sceneUri, encoder.encode(rawMarkdown + '\n'));
+                openedUri = sceneUri;
+
+                vscode.window.showInformationMessage(
+                    `Imported scene to ${path.basename(chapterUri.fsPath)}/${sceneFilename} (${totalWords.toLocaleString()} words).`
+                );
+                break;
+            }
+
+            case 'heuristic_split': {
+                progress.report({ message: 'Analyzing chapter markers...' });
+                const sections = splitMarkdownIntoSections(rawMarkdown, docxFilename);
+                let chapIdx = 0;
+                let totalImportedScenes = 0;
+
+                for (const sec of sections) {
+                    chapIdx++;
+                    const chapFolder = vscode.Uri.joinPath(targetRoot, `chapter_${String(chapIdx).padStart(2, '0')}`);
+                    await vscode.workspace.fs.createDirectory(chapFolder);
+
+                    const sceneUri = vscode.Uri.joinPath(chapFolder, 'scene_01.md');
+                    const secText = sec.lines.join('\n').trim();
+                    await vscode.workspace.fs.writeFile(sceneUri, encoder.encode(secText + '\n'));
+                    totalImportedScenes++;
+
+                    if (!openedUri) {
+                        openedUri = sceneUri;
+                    }
+                }
+
+                vscode.window.showInformationMessage(
+                    `Split into ${chapIdx} chapter(s) and ${totalImportedScenes} scene(s) (${totalWords.toLocaleString()} words).`
+                );
+                break;
+            }
         }
 
-        // Open first scene in Novellized Live View
-        if (firstSceneUriToOpen) {
+        // Open in Novellized Live View
+        if (openedUri) {
             try {
-                await vscode.commands.executeCommand('vscode.openWith', firstSceneUriToOpen, 'novellized.editor');
+                await vscode.commands.executeCommand('vscode.openWith', openedUri, 'novellized.editor');
             } catch {
-                const doc = await vscode.workspace.openTextDocument(firstSceneUriToOpen);
+                const doc = await vscode.workspace.openTextDocument(openedUri);
                 await vscode.window.showTextDocument(doc);
             }
         }
@@ -308,6 +374,125 @@ function splitChapterIntoScenes(chapterContent: string, defaultSceneTitle: strin
 
     // If no explicit scenes divided, return whole content as single scene
     return scenes.length > 0 ? scenes : [chapterContent];
+}
+
+/**
+ * Copies the AI organization prompt for a file or prompts user to pick an inbox file
+ */
+export async function copyAiOrganizePrompt(targetUri?: vscode.Uri): Promise<void> {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) return;
+    const rootUri = workspaceFolders[0].uri;
+
+    let fileToOrganize = targetUri;
+
+    if (!fileToOrganize) {
+        // Look for files in inbox/
+        const inboxUri = vscode.Uri.joinPath(rootUri, 'inbox');
+        let inboxFiles: [string, vscode.FileType][] = [];
+        try {
+            inboxFiles = await vscode.workspace.fs.readDirectory(inboxUri);
+        } catch {
+            // No inbox directory
+        }
+
+        const mdFiles = inboxFiles.filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.md'));
+        if (mdFiles.length === 0) {
+            vscode.window.showInformationMessage('No imported files found in inbox/ to organize.');
+            return;
+        }
+
+        const picked = await vscode.window.showQuickPick(
+            mdFiles.map(([name]) => ({
+                label: name,
+                uri: vscode.Uri.joinPath(inboxUri, name)
+            })),
+            { placeHolder: 'Select the file you want the AI Agent to organize' }
+        );
+        if (!picked) return;
+        fileToOrganize = picked.uri;
+    }
+
+    const relPath = path.relative(rootUri.fsPath, fileToOrganize.fsPath).replace(/\\/g, '/');
+    const docName = path.basename(fileToOrganize.fsPath, '.md');
+    const prompt = generateAiOrganizePrompt(docName, relPath);
+
+    await vscode.env.clipboard.writeText(prompt);
+    vscode.window.showInformationMessage(`AI Organization Prompt for "${relPath}" copied to clipboard! Paste it to your AI Agent chat.`);
+}
+
+/**
+ * Generates clear, structured AI Agent instructions in English with Vietnamese context
+ */
+function generateAiOrganizePrompt(docTitle: string, relativePath: string): string {
+    return `Please analyze and organize the newly imported document at "${relativePath}" for this novel project.
+
+Carefully classify and place the content into the Novellized project structure:
+
+1. **Character Profiles & Psychology**:
+   - If this document contains character sheets, appearances, flaws, backstories, or relationship dynamics, append/update them into \`docs/characters.md\`.
+
+2. **Worldbuilding, Lore & Setting Rules**:
+   - If it contains magic systems, power rankings, technology, geography, factions, history, cultural taboos, or societal laws, append/update them into \`docs/worldbuilding.md\`.
+
+3. **Master Outline & Plot Beats**:
+   - If it contains story arcs, 3-act beats, synopses, or scene milestones, append/update them into \`docs/outline.md\`.
+
+4. **Narrative Fiction / Actual Story Scenes**:
+   - If there is actual narrative prose (scenes with character action, dialogue, and narrative voice), split and place them into the appropriate chapter folders (e.g. \`chapter_01/scene_01.md\`, \`chapter_02/scene_01.md\`).
+
+5. **AI Rules & Constraints**:
+   - If there are explicit tone/voice directives or narrative POV instructions, record them in \`.novel/ai_rules.json\`.
+
+Maintain document integrity, do not lose any valuable details, and adhere strictly to 'Show, Don't Tell'.`;
+}
+
+async function appendOrWriteDoc(fileUri: vscode.Uri, content: string, sourceName: string, encoder: TextEncoder): Promise<void> {
+    let existing = '';
+    try {
+        const raw = await vscode.workspace.fs.readFile(fileUri);
+        existing = Buffer.from(raw).toString('utf8');
+    } catch {
+        // File does not exist yet
+    }
+
+    let finalContent = '';
+    if (existing.trim().length > 0) {
+        finalContent = `${existing.trim()}\n\n---\n\n## ${sourceName}\n\n${content}\n`;
+    } else {
+        finalContent = `# ${sourceName}\n\n${content}\n`;
+    }
+
+    await vscode.workspace.fs.writeFile(fileUri, encoder.encode(finalContent));
+}
+
+async function pickOrCreateChapter(rootUri: vscode.Uri): Promise<vscode.Uri | undefined> {
+    const entries = await vscode.workspace.fs.readDirectory(rootUri);
+    const chapterDirs = entries.filter(([name, type]) => type === vscode.FileType.Directory && /^chapter[-_]/i.test(name));
+
+    if (chapterDirs.length === 0) {
+        const chapUri = vscode.Uri.joinPath(rootUri, 'chapter_01');
+        await vscode.workspace.fs.createDirectory(chapUri);
+        return chapUri;
+    }
+
+    const picked = await vscode.window.showQuickPick(
+        [
+            ...chapterDirs.map(([name]) => ({
+                label: name.replace(/^chapter[-_]/i, 'Chapter ').replace(/[-_]/g, ' '),
+                uri: vscode.Uri.joinPath(rootUri, name)
+            })),
+            {
+                label: '$(plus) Create New Chapter',
+                uri: vscode.Uri.joinPath(rootUri, `chapter_${String(chapterDirs.length + 1).padStart(2, '0')}`)
+            }
+        ],
+        { placeHolder: 'Select destination chapter for this scene' }
+    );
+
+    if (!picked) return undefined;
+    await vscode.workspace.fs.createDirectory(picked.uri);
+    return picked.uri;
 }
 
 /**

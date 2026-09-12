@@ -99,8 +99,13 @@
       },
       {
         "command": "novellized.importDocx",
-        "title": "Novellized: 📥 Import Manuscript from Word (.docx)...",
+        "title": "Novellized: Import Manuscript from Word (.docx)...",
         "icon": "$(cloud-download)"
+      },
+      {
+        "command": "novellized.copyAiPrompt",
+        "title": "Novellized: Copy AI Organization Prompt for Staged Document...",
+        "icon": "$(sparkle)"
       }
     ],
     "menus": {
