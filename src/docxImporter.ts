@@ -101,7 +101,7 @@ export async function importDocxManuscript(): Promise<void> {
         const rawBytes = await vscode.workspace.fs.readFile(docxUri);
         const buffer = Buffer.from(rawBytes);
         const conversionResult = await mammoth.convertToMarkdown({ buffer });
-        const rawMarkdown = cleanWordMarkdown(conversionResult.value);
+        const rawMarkdown = cleanWordAndGoogleDocsMarkdown(conversionResult.value);
 
         if (!rawMarkdown.trim()) {
             vscode.window.showWarningMessage('The selected Word document appears to be empty.');
@@ -247,16 +247,40 @@ export async function importDocxManuscript(): Promise<void> {
 }
 
 /**
- * Cleans Word-specific artifacts from converted markdown
+ * Deeply cleans Word and Google Docs artifacts from converted markdown
+ * Strips tab cover pages, broken pagebreak dividers, internal bookmarks, and excessive gaps.
  */
-function cleanWordMarkdown(content: string): string {
-    return content
+function cleanWordAndGoogleDocsMarkdown(content: string): string {
+    let text = content
         .replace(/\r\n/g, '\n')
-        .replace(/\n{4,}/g, '\n\n\n')
-        // Clean smart quotes
+        .replace(/\u00A0/g, ' ')
         .replace(/[\u2018\u2019]/g, "'")
-        .replace(/[\u201C\u201D]/g, '"')
-        .trim();
+        .replace(/[\u201C\u201D]/g, '"');
+
+    // 1. Clean Google Docs internal bookmark anchors and links
+    text = text.replace(/<a\s+id="[^"]*"\s*><\/a>/gi, '');
+    text = text.replace(/\\\[bookmark=[^\]]+\\\]/gi, '');
+    text = text.replace(/\[([^\]]+)\]\(#[a-zA-Z0-9_\.\-]+\)/g, '$1');
+
+    // 2. Clean Google Docs Document Tab cover blocks (e.g. --- \n # Tab Name \n ---)
+    text = text.replace(/(?:^|\n)(?:---|___|\*\*\*)\s*\n+(#{1,3}\s+[^\n]+)\s*\n+(?:---|___|\*\*\*)/g, '\n\n$1\n\n');
+
+    // 3. Remove leading and trailing horizontal rule pagebreaks
+    text = text.replace(/^(?:\s*[-*_]{3,}\s*\n+)+/, '');
+    text = text.replace(/(?:\n+\s*[-*_]{3,}\s*)+$/, '');
+
+    // 4. Collapse consecutive page breaks / horizontal rules into one
+    text = text.replace(/(?:(?:\n|^)\s*[-*_]{3,}\s*){2,}/g, '\n\n---\n\n');
+
+    // 5. Compress excessive empty lines (Google Docs page gaps)
+    text = text.replace(/\n{3,}/g, '\n\n');
+
+    // 6. Clean dangling trailing whitespace on lines
+    text = text.split('\n')
+        .map(line => line.trimEnd())
+        .join('\n');
+
+    return text.trim();
 }
 
 /**
@@ -422,29 +446,36 @@ export async function copyAiOrganizePrompt(targetUri?: vscode.Uri): Promise<void
 }
 
 /**
- * Generates clear, structured AI Agent instructions in English with Vietnamese context
+ * Generates clear, structured AI Agent instructions with strict single-shot execution constraints
  */
 function generateAiOrganizePrompt(docTitle: string, relativePath: string): string {
-    return `Please analyze and organize the newly imported document at "${relativePath}" for this novel project.
+    return `CRITICAL INSTRUCTION FOR AI ASSISTANT: STRICT SINGLE-SHOT EXECUTION ONLY
+- DO NOT run exploratory tools, workspace searches, or directory scans.
+- DO NOT spawn subagents, background tasks, or multi-step verification cycles.
+- Perform a single direct edit to the destination file and STOP IMMEDIATELY.
 
-Carefully classify and place the content into the Novellized project structure:
+TASK:
+Analyze the staged manuscript/notes at "${relativePath}" and organize the content into this novel project:
 
-1. **Character Profiles & Psychology**:
-   - If this document contains character sheets, appearances, flaws, backstories, or relationship dynamics, append/update them into \`docs/characters.md\`.
+1. **Worldbuilding & Lore (\`docs/worldbuilding.md\`)**:
+   - Magic/power systems, cultivation realms, technology, geography, political hierarchy, societal laws, currency, setting history, and lore encyclopedias.
+   -> Append directly into \`docs/worldbuilding.md\` under clean markdown headings (## ...).
 
-2. **Worldbuilding, Lore & Setting Rules**:
-   - If it contains magic systems, power rankings, technology, geography, factions, history, cultural taboos, or societal laws, append/update them into \`docs/worldbuilding.md\`.
+2. **Character Profiles & Psychology (\`docs/characters.md\`)**:
+   - Character sheets, appearances, psychological flaws, internal conflicts, motivations, secret agendas, and relationship dynamics.
+   -> Append directly into \`docs/characters.md\`.
 
-3. **Master Outline & Plot Beats**:
-   - If it contains story arcs, 3-act beats, synopses, or scene milestones, append/update them into \`docs/outline.md\`.
+3. **Master Outline & Plot Beats (\`docs/outline.md\`)**:
+   - 3-Act story beats, timeline milestones, chapter outlines, climax, and resolution synopses.
+   -> Append directly into \`docs/outline.md\`.
 
-4. **Narrative Fiction / Actual Story Scenes**:
-   - If there is actual narrative prose (scenes with character action, dialogue, and narrative voice), split and place them into the appropriate chapter folders (e.g. \`chapter_01/scene_01.md\`, \`chapter_02/scene_01.md\`).
+4. **Narrative Fiction / Actual Story Scenes (\`chapter_xx/scene_xx.md\`)**:
+   - If (and only if) there are actual narrative story scenes with dialogue, action, and narrative prose, place them into the appropriate chapter folder (e.g. \`chapter_01/scene_01.md\`).
 
-5. **AI Rules & Constraints**:
-   - If there are explicit tone/voice directives or narrative POV instructions, record them in \`.novel/ai_rules.json\`.
-
-Maintain document integrity, do not lose any valuable details, and adhere strictly to 'Show, Don't Tell'.`;
+STRICT RULES:
+- Preserve 100% of the author's worldbuilding terms, numbers, and character details.
+- Strip out any remaining Google Docs export headers, tab covers, or pagebreak debris.
+- Do NOT hallucinate new lore or change existing terminology.`;
 }
 
 async function appendOrWriteDoc(fileUri: vscode.Uri, content: string, sourceName: string, encoder: TextEncoder): Promise<void> {
