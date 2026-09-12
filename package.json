@@ -96,6 +96,11 @@
         "command": "novellized.deleteScene",
         "title": "Novellized: Delete Scene",
         "icon": "$(trash)"
+      },
+      {
+        "command": "novellized.importDocx",
+        "title": "Novellized: 📥 Import Manuscript from Word (.docx)...",
+        "icon": "$(cloud-download)"
       }
     ],
     "menus": {
@@ -115,6 +120,11 @@
         {
           "command": "novellized.refreshManuscript",
           "when": "view == novellized.manuscriptView || view == novellized.projectStatsView || view == novellized.bibleView",
+          "group": "navigation"
+        },
+        {
+          "command": "novellized.importDocx",
+          "when": "view == novellized.manuscriptView",
           "group": "navigation"
         },
         {
@@ -159,7 +169,7 @@
     "viewsWelcome": [
       {
         "view": "novellized.manuscriptView",
-        "contents": "No novel manuscript found in this workspace.\n[Create New Novel Project](command:novellized.createNewNovel)"
+        "contents": "No novel manuscript found in this workspace.\n[Create New Novel Project](command:novellized.createNewNovel)\n[📥 Import from Word (.docx)](command:novellized.importDocx)"
       },
       {
         "view": "explorer",
@@ -178,6 +188,7 @@
     "@tiptap/extension-bubble-menu": "^2.27.3",
     "@tiptap/extension-focus": "^2.27.3",
     "@tiptap/starter-kit": "^2.11.5",
+    "mammoth": "^1.12.2",
     "tiptap-markdown": "^0.8.10"
   },
   "devDependencies": {

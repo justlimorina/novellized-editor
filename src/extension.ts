@@ -5,6 +5,7 @@ import { createNewNovelProject } from './projectInit';
 import { ManuscriptTreeProvider, ManuscriptTreeItem } from './manuscriptTree';
 import { ProjectStatsTreeProvider } from './projectStatsTree';
 import { BibleTreeProvider } from './bibleTree';
+import { importDocxManuscript } from './docxImporter';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
@@ -124,6 +125,13 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('novellized.createMissingBibleDoc', async (relativePath: string) => {
             await bibleProvider.createMissingDoc(relativePath);
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.importDocx', async () => {
+            await importDocxManuscript();
+            refreshAll();
         })
     );
 }
