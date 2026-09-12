@@ -12,6 +12,12 @@
     "Formatters"
   ],
   "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCustomEditor:novellized.editor",
+    "onView:novellized.manuscriptView",
+    "onView:novellized.projectStatsView",
+    "onView:novellized.bibleView"
+  ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -26,18 +32,15 @@
       "novellized-manuscript": [
         {
           "id": "novellized.manuscriptView",
-          "name": "Manuscript",
-          "visibility": "visible"
+          "name": "Manuscript"
         },
         {
           "id": "novellized.projectStatsView",
-          "name": "Writing Goals & Stats",
-          "visibility": "visible"
+          "name": "Writing Goals & Stats"
         },
         {
           "id": "novellized.bibleView",
-          "name": "Story Bible & AI Context",
-          "visibility": "visible"
+          "name": "Story Bible & AI Context"
         }
       ]
     },
