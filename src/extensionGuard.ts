@@ -85,7 +85,37 @@ export function initExtensionGuard(context: vscode.ExtensionContext) {
     const STATE_KEY = 'novellized.acknowledgedExtensions';
     const acknowledged = new Set<string>(context.globalState.get<string[]>(STATE_KEY, []));
 
-    // Track known extension IDs
+    // Helper to check and warn for extensions
+    async function checkExtensions(extensionsToCheck: readonly vscode.Extension<any>[]) {
+        for (const ext of extensionsToCheck) {
+            const lowerId = ext.id.toLowerCase();
+            if (acknowledged.has(lowerId)) {
+                continue;
+            }
+
+            if (!isLiteratureOrAllowedExtension(ext)) {
+                acknowledged.add(lowerId);
+                await context.globalState.update(STATE_KEY, Array.from(acknowledged));
+
+                const displayName = ext.packageJSON?.displayName || ext.packageJSON?.name || ext.id;
+                const choice = await vscode.window.showWarningMessage(
+                    `⚠️ Novellized Studio: The extension "${displayName}" appears to be a developer tool and is not optimized for novel writing. It may add unnecessary clutter or impact performance.`,
+                    'View Details',
+                    'Keep Anyway'
+                );
+
+                if (choice === 'View Details') {
+                    vscode.commands.executeCommand('extension.open', ext.id);
+                }
+            }
+        }
+    }
+
+    // 1. Initial check on startup for any installed third-party non-literature extensions
+    const initialNonBuiltin = vscode.extensions.all.filter(e => !e.packageJSON?.isBuiltin);
+    checkExtensions(initialNonBuiltin);
+
+    // 2. Track newly installed extensions dynamically
     let knownExtensionIds = new Set<string>(vscode.extensions.all.map(e => e.id.toLowerCase()));
 
     context.subscriptions.push(
@@ -93,37 +123,10 @@ export function initExtensionGuard(context: vscode.ExtensionContext) {
             const currentExtensions = vscode.extensions.all;
             const currentIds = new Set<string>(currentExtensions.map(e => e.id.toLowerCase()));
 
-            // Find newly installed extensions
-            const newlyInstalled = currentExtensions.filter(e => {
-                const lowerId = e.id.toLowerCase();
-                return !knownExtensionIds.has(lowerId);
-            });
-
-            // Update known extensions
+            const newlyInstalled = currentExtensions.filter(e => !knownExtensionIds.has(e.id.toLowerCase()));
             knownExtensionIds = currentIds;
 
-            for (const ext of newlyInstalled) {
-                const lowerId = ext.id.toLowerCase();
-                if (acknowledged.has(lowerId)) {
-                    continue;
-                }
-
-                if (!isLiteratureOrAllowedExtension(ext)) {
-                    acknowledged.add(lowerId);
-                    await context.globalState.update(STATE_KEY, Array.from(acknowledged));
-
-                    const displayName = ext.packageJSON?.displayName || ext.packageJSON?.name || ext.id;
-                    const choice = await vscode.window.showWarningMessage(
-                        `⚠️ Novellized Studio: The extension "${displayName}" appears to be a developer tool and is not optimized for novel writing. It may add unnecessary clutter or impact performance.`,
-                        'View Details',
-                        'Keep Anyway'
-                    );
-
-                    if (choice === 'View Details') {
-                        vscode.commands.executeCommand('extension.open', ext.id);
-                    }
-                }
-            }
+            await checkExtensions(newlyInstalled);
         })
     );
 }

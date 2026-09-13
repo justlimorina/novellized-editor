@@ -174,6 +174,13 @@ async function main() {
             console.log('✓ "debugUx" disabled to suppress all debug views from sidebar');
         }
 
+        // Auto-trust extension publishers (Bypass modal: "Do you trust the publisher...")
+        const trustPublisherPattern = /isPublisherTrusted\((\w+)\)\{const \w+=\1\.publisher\.toLowerCase\(\);return [^}]+}/;
+        if (trustPublisherPattern.test(jsContent)) {
+            jsContent = jsContent.replace(trustPublisherPattern, 'isPublisherTrusted($1){return!0}');
+            console.log('✓ Extension publishers auto-trusted (bypassed untrusted publisher modal)');
+        }
+
         fs.writeFileSync(workbenchMainJs, jsContent, 'utf8');
     }
 

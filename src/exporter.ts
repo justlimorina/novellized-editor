@@ -772,7 +772,9 @@ export async function exportToPdf(workspaceUri?: vscode.Uri): Promise<void> {
             title: `Exporting "${manuscript.metadata.title}" to PDF...`,
             cancellable: false
         }, async () => {
-            const tempHtmlUri = vscode.Uri.joinPath(rootUri, '.novel', '_temp_print.html');
+            const novelDirUri = vscode.Uri.joinPath(rootUri, '.novel');
+            await vscode.workspace.fs.createDirectory(novelDirUri);
+            const tempHtmlUri = vscode.Uri.joinPath(novelDirUri, '_temp_print.html');
             await vscode.workspace.fs.writeFile(tempHtmlUri, new TextEncoder().encode(htmlContent));
 
             const cmd = `"${browserExecutable}" --headless=new --disable-gpu --print-to-pdf="${targetUri.fsPath}" --no-pdf-header-footer "${tempHtmlUri.fsPath}"`;

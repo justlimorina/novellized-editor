@@ -292,10 +292,10 @@ function splitMarkdownIntoSections(rawMarkdown: string, defaultTitle: string): P
     let currentSection: ParsedSection | null = null;
 
     // Regular expressions for detecting chapter and documentation markers
-    const chapterRegex = /^(?:#{1,3}\s+)?(?:Chuong|Chapter|H?i|Part|Ph?n|M?c)\s+([IVXLCDM\d]+|[0-9]+)(?:[:\.\-��]\s*(.*))?$/i;
-    const charactersRegex = /^(?:#{1,3}\s+)?(?:H? so nh�n v?t|Nh�n v?t|Character Bible|Characters?)(?:[:\.\-��\s]|$)/i;
-    const worldbuildingRegex = /^(?:#{1,3}\s+)?(?:B?i c?nh|Th? gi?i|Worldbuilding|Setting|Geography)(?:[:\.\-��\s]|$)/i;
-    const outlineRegex = /^(?:#{1,3}\s+)?(?:D�n �|C?t truy?n|Master Outline|Outline|Plot)(?:[:\.\-��\s]|$)/i;
+    const chapterRegex = /^(?:#{1,3}\s+)?(?:Chương|Chuong|Chapter|Hồi|Hoi|Part|Phần|Phan|Mục|Muc)\s+([IVXLCDM\d]+|[0-9]+)(?:[:\.\-–—]\s*(.*))?$/i;
+    const charactersRegex = /^(?:#{1,3}\s+)?(?:Hồ sơ nhân vật|Ho so nhan vat|Nhân vật|Nhan vat|Character Bible|Characters?)(?:[:\.\-–—\s]|$)/i;
+    const worldbuildingRegex = /^(?:#{1,3}\s+)?(?:Bối cảnh|Boi canh|Thế giới|The gioi|Worldbuilding|Setting|Geography)(?:[:\.\-–—\s]|$)/i;
+    const outlineRegex = /^(?:#{1,3}\s+)?(?:Dàn ý|Dan y|Cốt truyện|Cot truyen|Master Outline|Outline|Plot)(?:[:\.\-–—\s]|$)/i;
     const heading1Regex = /^#\s+(.+)$/;
 
     for (let i = 0; i < lines.length; i++) {
@@ -379,7 +379,7 @@ function splitChapterIntoScenes(chapterContent: string, defaultSceneTitle: strin
     const scenes: string[] = [];
     let currentSceneLines: string[] = [];
 
-    const sceneDividerRegex = /^(?:---|\\*\\*\\*|___|\u2042|###\\s+Scene|###\\s+Cảnh)/i;
+    const sceneDividerRegex = /^(?:---|(?:\*{3,})|___|\u2042|###\s+Scene|###\s+Cảnh)/i;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();

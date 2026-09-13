@@ -32,7 +32,7 @@ export class ProjectStatsTreeProvider implements vscode.TreeDataProvider<vscode.
 
         // Progress bar (20 blocks)
         const filledBlocks = Math.min(20, Math.round((stats.totalWords / targetWordCount) * 20));
-        const progressBar = `[${'·'.repeat(filledBlocks)}${'·'.repeat(20 - filledBlocks)}] ${percent}%`;
+        const progressBar = `[${'█'.repeat(filledBlocks)}${'░'.repeat(20 - filledBlocks)}] ${percent}%`;
 
         // Reading time
         const readingMinutes = Math.ceil(stats.totalWords / 200);
@@ -193,6 +193,8 @@ export class ProjectStatsTreeProvider implements vscode.TreeDataProvider<vscode.
         const newGoal = parseInt(input, 10);
         currentConfig.targetWordCount = newGoal;
 
+        const novelDirUri = vscode.Uri.joinPath(rootUri, '.novel');
+        await vscode.workspace.fs.createDirectory(novelDirUri);
         const encoder = new TextEncoder();
         await vscode.workspace.fs.writeFile(configUri, encoder.encode(JSON.stringify(currentConfig, null, 2)));
 
