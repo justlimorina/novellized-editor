@@ -13,6 +13,7 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
+    "onStartupFinished",
     "onCustomEditor:novellized.editor",
     "onView:novellized.manuscriptView",
     "onView:novellized.projectStatsView",

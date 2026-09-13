@@ -105,6 +105,7 @@ async function main() {
     fs.copyFileSync(path.join(ROOT_DIR, 'package.json'), path.join(extensionsDir, 'package.json'));
     copyDirSync(path.join(ROOT_DIR, 'dist'), path.join(extensionsDir, 'dist'));
     copyDirSync(path.join(ROOT_DIR, 'themes'), path.join(extensionsDir, 'themes'));
+    copyDirSync(path.join(ROOT_DIR, 'resources'), path.join(extensionsDir, 'resources'));
 
     // Pre-configure settings for novelists
     const defaultSettings = {
