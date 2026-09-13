@@ -296,23 +296,27 @@
             "id": "novellized.step.create",
             "title": "Create a Novel Project",
             "description": "Initialize a professional novel structure (Part ➔ Chapter ➔ Scene) with character and worldbuilding bibles.\n[Create New Novel Project](command:novellized.createNewNovel)",
+            "media": { "svg": "resources/icon.svg" },
             "completionEvents": ["onCommand:novellized.createNewNovel"]
           },
           {
             "id": "novellized.step.write",
             "title": "Focus Mode & Typewriter Scrolling",
-            "description": "Open any scene in Novellized Live View. Enjoy smooth typewriter scrolling and paragraph-dimming focus mode for deep flow state."
+            "description": "Open any scene in Novellized Live View. Enjoy smooth typewriter scrolling and paragraph-dimming focus mode for deep flow state.",
+            "media": { "svg": "resources/icon.svg" }
           },
           {
             "id": "novellized.step.preset",
             "title": "Apply Writer's Settings Preset",
             "description": "Turn off code line numbers, minimap, and syntax popups to make the editor feel like a pure novel writing app.\n[Apply Writer Preset](command:novellized.applyNovelistPreset)",
+            "media": { "svg": "resources/icon.svg" },
             "completionEvents": ["onCommand:novellized.applyNovelistPreset"]
           },
           {
             "id": "novellized.step.export",
             "title": "Export to EPUB & PDF",
             "description": "Compile your entire manuscript into a standard EPUB 3 ebook or publication-grade PDF in seconds.\n[Export as EPUB](command:novellized.exportEpub) | [Export as PDF](command:novellized.exportPdf)",
+            "media": { "svg": "resources/icon.svg" },
             "completionEvents": ["onCommand:novellized.exportEpub", "onCommand:novellized.exportPdf"]
           }
         ]

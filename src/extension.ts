@@ -10,9 +10,11 @@ import { exportToEpub, exportToPdf, openPrintableBookView } from './exporter';
 import { WriterStatusBarManager } from './statusBar';
 import { ZenModeManager } from './zenMode';
 import { applyNovelistPreset } from './novelistSettings';
+import { initExtensionGuard } from './extensionGuard';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
+    initExtensionGuard(context);
 
     // Initialize Tree Providers for Activity Bar
     const manuscriptProvider = new ManuscriptTreeProvider();

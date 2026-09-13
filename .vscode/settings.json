@@ -1,0 +1,14 @@
+{
+    "files.watcherExclude": {
+        "**/dist-ide/**": true,
+        "**/.cache/**": true,
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/**": true
+    },
+    "files.exclude": {
+        "**/dist-ide/**": true,
+        "**/.cache/**": true
+    }
+}
+

@@ -1,10 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
+import { DatabaseSync } from 'node:sqlite';
+
 
 const ROOT_DIR = process.cwd();
 const CACHE_DIR = path.join(ROOT_DIR, '.cache');
-const OUTPUT_DIR = path.join(ROOT_DIR, 'dist-ide', 'Novellized-Studio-win32-x64');
+const OUTPUT_DIR = path.join(ROOT_DIR, 'dist-ide', 'Novellized-Studio');
+
 
 async function ensureDir(dir) {
     if (!fs.existsSync(dir)) {
@@ -80,25 +83,110 @@ async function main() {
     await downloadFile(release.url, zipPath);
 
     // 3. Extract to output directory
-    console.log(`\n2. Extracting to ${OUTPUT_DIR} ...`);
-    if (fs.existsSync(OUTPUT_DIR)) {
-        console.log('Cleaning old output directory...');
-        fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
+    const isCleanRequested = process.argv.includes('--clean') || process.argv.includes('--force');
+    const isAlreadyExtracted = fs.existsSync(path.join(OUTPUT_DIR, 'resources', 'app'));
+
+    if (!isAlreadyExtracted || isCleanRequested) {
+        console.log(`\n2. Extracting to ${OUTPUT_DIR} ...`);
+        if (fs.existsSync(OUTPUT_DIR) && isCleanRequested) {
+            console.log('Cleaning old output directory (--clean requested)...');
+            try {
+                fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
+            } catch (err) {
+                console.warn('⚠️ Could not remove entire directory, continuing with overwrite...');
+            }
+        }
+        ensureDir(OUTPUT_DIR);
+        console.log('Extracting archive...');
+        execSync(`tar -xf "${zipPath}" -C "${OUTPUT_DIR}"`, { stdio: 'inherit' });
+    } else {
+        console.log(`\n2. Output directory already extracted: ${OUTPUT_DIR}`);
+        console.log('Skipping extraction (use --clean to force re-extract).');
     }
-    ensureDir(OUTPUT_DIR);
 
-    // Use tar -xf (built-in to Windows 10/11 and faster than PowerShell)
-    console.log('Extracting archive...');
-    execSync(`tar -xf "${zipPath}" -C "${OUTPUT_DIR}"`, { stdio: 'inherit' });
+    // 4. Prune Built-in Developer Extensions
+    console.log('\n3. Pruning built-in developer extensions...');
+    const builtInExtDir = path.join(OUTPUT_DIR, 'resources', 'app', 'extensions');
+    const EXTENSIONS_TO_KEEP = new Set([
+        'configuration-editing',
+        'json',
+        'json-language-features',
+        'markdown-basics',
+        'markdown-language-features',
+        'markdown-math',
+        'mermaid-markdown-features',
+        'media-preview',
+        'search-result',
+        'theme-defaults',
+        'theme-seti',
+        'theme-modern-icons',
+        'simple-browser',
+        'node_modules'
+    ]);
 
-    // 4. Set up Portable Mode (`data/` folder)
-    console.log('\n3. Configuring Portable Novelist Environment...');
+    if (fs.existsSync(builtInExtDir)) {
+        const allExts = fs.readdirSync(builtInExtDir);
+        let prunedCount = 0;
+        for (const ext of allExts) {
+            if (!EXTENSIONS_TO_KEEP.has(ext)) {
+                fs.rmSync(path.join(builtInExtDir, ext), { recursive: true, force: true });
+                prunedCount++;
+            }
+        }
+        console.log(`✓ Pruned ${prunedCount} unused developer extensions (languages, debuggers, git, build tools)`);
+    }
+
+    // 5. Patch Workbench Menubar (Remove "Run" and "Terminal" menus)
+    console.log('\n4. Patching Workbench to remove programmer menus (Run & Terminal)...');
+    const workbenchMainJs = path.join(
+        OUTPUT_DIR,
+        'resources',
+        'app',
+        'out',
+        'vs',
+        'workbench',
+        'workbench.desktop.main.js'
+    );
+    if (fs.existsSync(workbenchMainJs)) {
+        let jsContent = fs.readFileSync(workbenchMainJs, 'utf8');
+        const termPattern = /fe\.appendMenuItem\(T\.MenubarMainMenu,\{submenu:T\.MenubarTerminalMenu,[^}]+\},order:7\}\),?/;
+        const runPattern = /fe\.appendMenuItem\(T\.MenubarMainMenu,\{submenu:T\.MenubarDebugMenu,[^}]+R\(\d+,"Run"\)[^}]+\},order:6[^}]*\}\),?/;
+
+        const hasTerm = termPattern.test(jsContent);
+        const hasRun = runPattern.test(jsContent);
+
+        if (hasTerm || hasRun) {
+            jsContent = jsContent.replace(termPattern, '').replace(runPattern, '');
+            console.log('✓ "Run" and "Terminal" menus completely removed from top Menu Bar');
+        } else {
+            console.log('• Menus already patched or patterns not found');
+        }
+
+        // Remove Run & Debug from Sidebar (Activity Bar)
+        const debugContainerPattern = /\.registerViewContainer\(\{id:Uv,title:/;
+        const debugUxPattern = /vWi="debugUx",dL=new K\(vWi,"default",/;
+        if (debugContainerPattern.test(jsContent)) {
+            jsContent = jsContent.replace(debugContainerPattern, '.registerViewContainer({id:Uv,hideIfEmpty:!0,title:');
+            console.log('✓ "Run and Debug" view container marked hideIfEmpty:true');
+        }
+        if (debugUxPattern.test(jsContent)) {
+            jsContent = jsContent.replace(debugUxPattern, 'vWi="debugUx",dL=new K(vWi,"disabled",');
+            console.log('✓ "debugUx" disabled to suppress all debug views from sidebar');
+        }
+
+        fs.writeFileSync(workbenchMainJs, jsContent, 'utf8');
+    }
+
+    // 6. Set up Portable Mode (`data/` folder)
+    console.log('\n5. Configuring Portable Novelist Environment...');
     const dataDir = path.join(OUTPUT_DIR, 'data');
     const extensionsDir = path.join(dataDir, 'extensions', 'novellized-editor');
     const userSettingsDir = path.join(dataDir, 'user-data', 'User');
+    const globalStorageDir = path.join(userSettingsDir, 'globalStorage');
 
     ensureDir(extensionsDir);
     ensureDir(userSettingsDir);
+    ensureDir(globalStorageDir);
 
     // Copy extension files
     console.log('Installing Novellized Prose Editor into portable extensions...');
@@ -127,7 +215,18 @@ async function main() {
         "workbench.startupEditor": "welcomePage",
         "telemetry.telemetryLevel": "off",
         "update.mode": "none",
-        "workbench.enableExperiments": false
+        "workbench.enableExperiments": false,
+
+        // Developer Clutter Elimination
+        "git.enabled": false,
+        "git.path": null,
+        "git.autofetch": false,
+        "workbench.layoutControl.enabled": false,
+        "debug.showInStatusBar": "never",
+        "debug.toolBarLocation": "hidden",
+        "scm.showHistoryGraph": false,
+        "workbench.tips.enabled": false,
+        "window.restoreWindows": "none"
     };
 
     fs.writeFileSync(
@@ -135,10 +234,75 @@ async function main() {
         JSON.stringify(defaultSettings, null, 2),
         'utf8'
     );
-    console.log('✓ Novelist settings pre-configured (Warm Parchment, line numbers off, telemetry off)');
+    console.log('✓ Novelist settings pre-configured (Warm Parchment, line numbers off, clutter off)');
 
-    // 5. Custom Branding in product.json
-    console.log('\n4. Applying Novellized Studio branding...');
+    // Clean runtime cache / stale locks so new builds never carry ghost sessions
+    const userDataDir = path.join(dataDir, 'user-data');
+    if (fs.existsSync(userDataDir)) {
+        for (const entry of fs.readdirSync(userDataDir)) {
+            if (entry !== 'User') {
+                try { fs.rmSync(path.join(userDataDir, entry), { recursive: true, force: true }); } catch { }
+            }
+        }
+    }
+    const storageJson = path.join(globalStorageDir, 'storage.json');
+    if (fs.existsSync(storageJson)) {
+        try { fs.rmSync(storageJson, { force: true }); } catch { }
+    }
+
+    // 7. Configure state.vscdb (Activity Bar and Status Bar)
+    console.log('\n6. Decluttering Activity Bar and Status Bar in state database...');
+    const vscdbPath = path.join(globalStorageDir, 'state.vscdb');
+    const vscdbBackup = path.join(globalStorageDir, 'state.vscdb.backup');
+    if (fs.existsSync(vscdbBackup)) {
+        fs.rmSync(vscdbBackup, { force: true });
+    }
+
+    try {
+        const db = new DatabaseSync(vscdbPath);
+        db.exec("CREATE TABLE IF NOT EXISTS ItemTable (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB)");
+
+        // 1. Activity Bar: Pin Manuscript, Explorer, Search, and Extensions (Hide SCM & Debug)
+        const pinnedViewlets = [
+            { "id": "workbench.view.extension.novellized-manuscript", "pinned": true, "visible": true, "order": 0 },
+            { "id": "workbench.view.explorer", "pinned": true, "visible": false, "order": 1 },
+            { "id": "workbench.view.search", "pinned": true, "visible": false, "order": 2 },
+            { "id": "workbench.view.extensions", "pinned": true, "visible": false, "order": 3 },
+            { "id": "workbench.view.scm", "pinned": false, "visible": false, "order": 4 },
+            { "id": "workbench.view.debug", "pinned": false, "visible": false, "order": 5 }
+        ];
+        db.prepare("INSERT INTO ItemTable (key, value) VALUES (?, ?)").run(
+            'workbench.activity.pinnedViewlets2',
+            JSON.stringify(pinnedViewlets)
+        );
+
+        // 2. Status Bar: Hide Problems counter and SCM/Git
+        const hiddenStatusItems = [
+            "status.problems",
+            "status.problemsVisibility",
+            "status.scm"
+        ];
+        db.prepare("INSERT INTO ItemTable (key, value) VALUES (?, ?)").run(
+            'workbench.statusbar.hidden',
+            JSON.stringify(hiddenStatusItems)
+        );
+
+        // 3. Markers / Problems panel hidden
+        db.prepare("INSERT INTO ItemTable (key, value) VALUES (?, ?)").run(
+            'workbench.panel.markers.hidden',
+            JSON.stringify([{ "id": "workbench.panel.markers.view", "isHidden": true }])
+        );
+
+        db.close();
+        console.log('✓ Activity Bar pinned to: Manuscript, Explorer, Search (SCM and Debug removed)');
+        console.log('✓ Status Bar problems counter and git branch hidden');
+    } catch (e) {
+        console.warn('⚠️ Could not configure state.vscdb:', e.message);
+    }
+
+
+    // 8. Custom Branding in product.json
+    console.log('\n7. Applying Novellized Studio branding...');
     const productJsonPath = path.join(OUTPUT_DIR, 'resources', 'app', 'product.json');
     if (fs.existsSync(productJsonPath)) {
         const product = JSON.parse(fs.readFileSync(productJsonPath, 'utf8'));
@@ -147,6 +311,11 @@ async function main() {
         product.applicationName = "novellized";
         product.dataFolderName = ".novellized";
         product.win32MutexName = "novellized";
+        product.win32AppUserModelId = "Novellized.Novellized";
+        product.win32DirName = "Novellized";
+        product.win32NameVersion = "Novellized Studio";
+        product.win32RegValueName = "Novellized";
+        product.win32ShellNameShort = "Novellized";
         product.enableTelemetry = false;
         product.sendASARTelemetry = false;
 
@@ -154,7 +323,7 @@ async function main() {
         console.log('✓ product.json updated with Novellized Studio branding');
     }
 
-    // 6. Rename Executable
+    // 9. Rename Executable
     const oldExe = path.join(OUTPUT_DIR, 'VSCodium.exe');
     const newExe = path.join(OUTPUT_DIR, 'Novellized.exe');
     if (fs.existsSync(oldExe)) {
