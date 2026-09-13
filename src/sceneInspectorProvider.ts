@@ -56,19 +56,17 @@ export class SceneInspectorProvider implements vscode.WebviewViewProvider {
                     break;
                 }
                 case 'compareSnapshot': {
-                    const snapUri = vscode.Uri.file(message.snapshotPath);
-                    await SnapshotManager.compareWithSnapshot(this.activeSceneUri, snapUri, message.label);
+                    await SnapshotManager.compareWithSnapshot(this.activeSceneUri, message.snapshotId, message.label);
                     break;
                 }
                 case 'restoreSnapshot': {
                     const confirm = await vscode.window.showWarningMessage(
-                        `Restore scene to snapshot "${message.label}"? Current unsaved edits will be overwritten.`,
+                        `Restore scene to snapshot "${message.label}"? An automatic safety checkpoint will be saved before restoring.`,
                         { modal: true },
                         'Restore'
                     );
                     if (confirm === 'Restore') {
-                        const snapUri = vscode.Uri.file(message.snapshotPath);
-                        await SnapshotManager.restoreSnapshot(this.activeSceneUri, snapUri);
+                        await SnapshotManager.restoreSnapshot(this.activeSceneUri, message.snapshotId);
                         vscode.window.showInformationMessage(`✓ Restored scene to snapshot "${message.label}".`);
                         await this.refreshInspector();
                     }
@@ -439,7 +437,7 @@ export class SceneInspectorProvider implements vscode.WebviewViewProvider {
                             card.innerHTML = \`
                                 <div class="snapshot-info">
                                     <div class="snapshot-label" title="\${s.label}">\${s.label}</div>
-                                    <div class="snapshot-date">\${s.dateStr} • \${s.words}w</div>
+                                    <div class="snapshot-date">\${s.dateStr} • \${s.words}w \${s.oid ? '• #' + s.oid.slice(0, 7) : ''}</div>
                                 </div>
                                 <div class="snapshot-actions">
                                     <button class="btn-mini btn-compare" title="Compare with current scene">Diff</button>
@@ -450,7 +448,7 @@ export class SceneInspectorProvider implements vscode.WebviewViewProvider {
                             card.querySelector('.btn-compare').addEventListener('click', () => {
                                 vscode.postMessage({
                                     type: 'compareSnapshot',
-                                    snapshotPath: s.uri.fsPath,
+                                    snapshotId: s.id,
                                     label: s.label
                                 });
                             });
@@ -458,7 +456,7 @@ export class SceneInspectorProvider implements vscode.WebviewViewProvider {
                             card.querySelector('.btn-restore').addEventListener('click', () => {
                                 vscode.postMessage({
                                     type: 'restoreSnapshot',
-                                    snapshotPath: s.uri.fsPath,
+                                    snapshotId: s.id,
                                     label: s.label
                                 });
                             });
