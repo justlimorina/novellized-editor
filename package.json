@@ -17,7 +17,8 @@
     "onCustomEditor:novellized.editor",
     "onView:novellized.manuscriptView",
     "onView:novellized.projectStatsView",
-    "onView:novellized.bibleView"
+    "onView:novellized.bibleView",
+    "onView:novellized.sceneInspectorView"
   ],
   "contributes": {
     "viewsContainers": {
@@ -42,6 +43,10 @@
         {
           "id": "novellized.bibleView",
           "name": "Story Bible & AI Context"
+        },
+        {
+          "id": "novellized.sceneInspectorView",
+          "name": "Scene Inspector"
         }
       ]
     },
@@ -147,6 +152,21 @@
         "command": "novellized.applyNovelistPreset",
         "title": "Novellized: Apply Writer's Settings Preset (Word Wrap, Clean Typography)",
         "icon": "$(gear)"
+      },
+      {
+        "command": "novellized.openCorkboard",
+        "title": "Novellized: Open Chapter Corkboard",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "novellized.takeSnapshot",
+        "title": "Novellized: Take Scene Snapshot...",
+        "icon": "$(camera)"
+      },
+      {
+        "command": "novellized.startWritingSprint",
+        "title": "Novellized: Start Writing Sprint / Pomodoro...",
+        "icon": "$(flame)"
       }
     ],
     "menus": {
@@ -192,9 +212,29 @@
           "command": "novellized.addScene",
           "when": "view == novellized.manuscriptView",
           "group": "navigation@6"
+        },
+        {
+          "command": "novellized.startWritingSprint",
+          "when": "view == novellized.manuscriptView",
+          "group": "navigation@7"
         }
       ],
       "view/item/context": [
+        {
+          "command": "novellized.openCorkboard",
+          "when": "view == novellized.manuscriptView && viewItem == chapter",
+          "group": "inline@0"
+        },
+        {
+          "command": "novellized.openCorkboard",
+          "when": "view == novellized.manuscriptView && viewItem == chapter",
+          "group": "7_modification@0"
+        },
+        {
+          "command": "novellized.takeSnapshot",
+          "when": "view == novellized.manuscriptView && viewItem == scene",
+          "group": "inline@0"
+        },
         {
           "command": "novellized.renameChapter",
           "when": "view == novellized.manuscriptView && viewItem == chapter",

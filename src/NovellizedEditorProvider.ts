@@ -1,7 +1,10 @@
 import * as vscode from 'vscode';
+import { extractCharactersFromBible, extractWorldbuildingFromBible } from './sceneMetadata';
+import { SnapshotManager } from './snapshotManager';
 
 export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider {
     public static readonly viewType = 'novellized.editor';
+    public static readonly onDidChangeActiveScene = new vscode.EventEmitter<vscode.Uri>();
 
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
         const provider = new NovellizedEditorProvider(context);
@@ -33,6 +36,15 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
 
         webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
+        // Notify active scene for Inspector
+        NovellizedEditorProvider.onDidChangeActiveScene.fire(document.uri);
+
+        const viewStateSubscription = webviewPanel.onDidChangeViewState(e => {
+            if (e.webviewPanel.active) {
+                NovellizedEditorProvider.onDidChangeActiveScene.fire(document.uri);
+            }
+        });
+
         let isInternalUpdate = false;
         let lastReceivedContent = document.getText();
 
@@ -40,12 +52,21 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
         const messageSubscription = webviewPanel.webview.onDidReceiveMessage(async (message) => {
             switch (message.type) {
                 case 'ready':
-                    // Webview DOM loaded, send initial markdown
+                    // Webview DOM loaded, send initial markdown & entity lore
                     lastReceivedContent = document.getText();
+                    const rootUri = vscode.workspace.getWorkspaceFolder(document.uri)?.uri || vscode.workspace.workspaceFolders?.[0]?.uri;
+                    let characters: any[] = [];
+                    let worldbuilding: any[] = [];
+                    if (rootUri) {
+                        characters = await extractCharactersFromBible(rootUri);
+                        worldbuilding = await extractWorldbuildingFromBible(rootUri);
+                    }
                     webviewPanel.webview.postMessage({
                         type: 'init',
                         text: lastReceivedContent,
-                        fileName: document.fileName
+                        fileName: document.fileName,
+                        characters,
+                        worldbuilding
                     });
                     return;
 
@@ -65,6 +86,21 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
                 case 'requestRawMode':
                     await vscode.commands.executeCommand('workbench.action.reopenTextEditor');
                     return;
+
+                case 'takeSnapshot': {
+                    const label = await vscode.window.showInputBox({
+                        title: 'Take Scene Snapshot',
+                        prompt: 'Enter label for this snapshot (e.g. Checkpoint before rewrite)',
+                        placeHolder: 'Draft checkpoint'
+                    });
+                    if (label !== undefined) {
+                        const item = await SnapshotManager.takeSnapshot(document.uri, label);
+                        if (item) {
+                            vscode.window.showInformationMessage(`📸 Snapshot "${item.label}" saved!`);
+                        }
+                    }
+                    return;
+                }
 
                 case 'save':
                     if (message.text !== undefined && message.text !== document.getText()) {
@@ -96,6 +132,7 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
         });
 
         webviewPanel.onDidDispose(() => {
+            viewStateSubscription.dispose();
             messageSubscription.dispose();
             changeDocumentSubscription.dispose();
         });
@@ -141,6 +178,12 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
                 <button id="btn-toggle-typewriter" class="btn-toggle active" title="Toggle Typewriter Scrolling (Keep active line centered)">
                     📜 Typewriter: ON
                 </button>
+                <button id="btn-toggle-dialogue" class="btn-toggle" title="Highlight Dialogue vs Narrative (Check Pacing)">
+                    💬 Dialogue: OFF
+                </button>
+                <button id="btn-take-snapshot" title="Take a Quick Snapshot of this Scene">
+                    📸 Snapshot
+                </button>
                 <button id="btn-toggle-raw" title="Switch to Raw Markdown mode (Monaco)">
                     Raw Markdown
                 </button>
@@ -150,6 +193,11 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
             <div id="editor-container"></div>
         </div>
     </div>
+
+    <!-- Mention / Entity Auto-Suggest Popup -->
+    <div id="mention-dropdown" class="mention-dropdown" style="display: none;"></div>
+    <!-- Entity Hover Tooltip Card -->
+    <div id="entity-tooltip" class="entity-tooltip" style="display: none;"></div>
 
     <!-- Floating Bubble Menu for ProseMirror -->
     <div id="bubble-menu" class="bubble-menu">

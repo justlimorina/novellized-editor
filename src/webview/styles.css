@@ -331,3 +331,95 @@ body {
     background: var(--vscode-editorGroup-border, rgba(128, 128, 128, 0.3));
     margin: 0 3px;
 }
+
+/* ==========================================================================
+   Dialogue vs Narrative Highlight Mode
+   ========================================================================== */
+.dialogue-mode-active .prose-dialogue {
+    background: rgba(230, 165, 45, 0.18);
+    border-bottom: 1.5px solid rgba(230, 165, 45, 0.5);
+    border-radius: 3px;
+    padding: 1px 2px;
+    color: inherit;
+    transition: background 0.2s ease;
+}
+
+/* ==========================================================================
+   Entity Mention Autocomplete Dropdown & Tooltips
+   ========================================================================== */
+.mention-dropdown {
+    position: fixed;
+    z-index: 1000;
+    background: var(--vscode-editorWidget-background, #252526);
+    border: 1px solid var(--vscode-editorWidget-border, rgba(128,128,128,0.3));
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+    max-height: 220px;
+    overflow-y: auto;
+    width: 240px;
+    font-family: var(--ui-font);
+}
+
+.mention-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--vscode-foreground, #ccc);
+    transition: background-color 0.1s ease;
+}
+
+.mention-item:hover, .mention-item.selected {
+    background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.08));
+    color: var(--vscode-foreground, #fff);
+}
+
+.mention-item .entity-icon {
+    font-size: 14px;
+}
+
+.mention-item .entity-name {
+    font-weight: 600;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mention-item .entity-role {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground, #888);
+}
+
+.entity-tooltip {
+    position: fixed;
+    z-index: 999;
+    background: var(--vscode-editorHoverWidget-background, #202022);
+    color: var(--vscode-editorHoverWidget-foreground, #ddd);
+    border: 1px solid var(--vscode-editorHoverWidget-border, rgba(128,128,128,0.3));
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: var(--ui-font);
+    font-size: 11.5px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    max-width: 280px;
+    pointer-events: none;
+    line-height: 1.4;
+}
+
+.entity-tooltip .tooltip-header {
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.entity-tooltip .tooltip-body {
+    color: var(--vscode-descriptionForeground, #aaa);
+    font-size: 11px;
+}
+

@@ -11,6 +11,10 @@ import { WriterStatusBarManager } from './statusBar';
 import { ZenModeManager } from './zenMode';
 import { applyNovelistPreset } from './novelistSettings';
 import { initExtensionGuard } from './extensionGuard';
+import { SceneInspectorProvider } from './sceneInspectorProvider';
+import { CorkboardManager } from './corkboardProvider';
+import { SnapshotManager } from './snapshotManager';
+import { WritingSprintManager } from './writingSprint';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
@@ -21,12 +25,28 @@ export function activate(context: vscode.ExtensionContext) {
     const statsProvider = new ProjectStatsTreeProvider();
     const bibleProvider = new BibleTreeProvider();
     const statusBarManager = new WriterStatusBarManager();
+    const inspectorProvider = new SceneInspectorProvider(context.extensionUri);
+    const sprintManager = WritingSprintManager.getInstance();
 
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('novellized.manuscriptView', manuscriptProvider),
         vscode.window.registerTreeDataProvider('novellized.projectStatsView', statsProvider),
         vscode.window.registerTreeDataProvider('novellized.bibleView', bibleProvider),
-        statusBarManager
+        vscode.window.registerWebviewViewProvider(SceneInspectorProvider.viewType, inspectorProvider),
+        statusBarManager,
+        sprintManager
+    );
+
+    // Synchronize active scene with Scene Inspector
+    context.subscriptions.push(
+        NovellizedEditorProvider.onDidChangeActiveScene.event(uri => {
+            inspectorProvider.setActiveScene(uri);
+        }),
+        vscode.window.onDidChangeActiveTextEditor(editor => {
+            if (editor?.document.uri.fsPath.endsWith('.md')) {
+                inspectorProvider.setActiveScene(editor.document.uri);
+            }
+        })
     );
 
     const refreshAll = () => {
@@ -34,6 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
         statsProvider.refresh();
         bibleProvider.refresh();
         statusBarManager.refresh();
+        inspectorProvider.refreshInspector();
     };
 
     // Watch files to update word count and structure in real-time
@@ -152,7 +173,6 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
-
     context.subscriptions.push(
         vscode.commands.registerCommand('novellized.createMissingBibleDoc', async (relativePath: string) => {
             await bibleProvider.createMissingDoc(relativePath);
@@ -200,6 +220,57 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('novellized.applyNovelistPreset', async () => {
             await applyNovelistPreset();
+        })
+    );
+
+    // Corkboard Command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.openCorkboard', async (item?: any) => {
+            let chapterUri: vscode.Uri | undefined;
+            if (item && item.resourceUri) {
+                chapterUri = item.resourceUri;
+            } else {
+                const active = vscode.window.activeTextEditor?.document.uri;
+                if (active) {
+                    chapterUri = vscode.Uri.joinPath(active, '..');
+                }
+            }
+
+            if (chapterUri) {
+                await CorkboardManager.openCorkboard(chapterUri, context.extensionUri);
+            } else {
+                vscode.window.showInformationMessage('Please right-click a chapter in the Manuscript view to open its Corkboard.');
+            }
+        })
+    );
+
+    // Snapshot Command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.takeSnapshot', async (item?: any) => {
+            const targetUri: vscode.Uri | undefined = item?.resourceUri || vscode.window.activeTextEditor?.document.uri;
+            if (!targetUri) {
+                vscode.window.showWarningMessage('Please open or select a scene to take a snapshot.');
+                return;
+            }
+            const label = await vscode.window.showInputBox({
+                title: 'Take Scene Snapshot',
+                prompt: 'Enter label for this snapshot',
+                placeHolder: 'Draft checkpoint'
+            });
+            if (label !== undefined) {
+                const snap = await SnapshotManager.takeSnapshot(targetUri, label);
+                if (snap) {
+                    vscode.window.showInformationMessage(`📸 Snapshot "${snap.label}" created!`);
+                    inspectorProvider.refreshInspector();
+                }
+            }
+        })
+    );
+
+    // Writing Sprint Command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.startWritingSprint', async () => {
+            await sprintManager.promptSprint();
         })
     );
 }
