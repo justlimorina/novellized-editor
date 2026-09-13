@@ -15,6 +15,7 @@ import { SceneInspectorProvider } from './sceneInspectorProvider';
 import { CorkboardManager } from './corkboardProvider';
 import { SnapshotManager } from './snapshotManager';
 import { WritingSprintManager } from './writingSprint';
+import { NovellizedSourceControl } from './novellizedSourceControl';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
@@ -35,6 +36,24 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.registerWebviewViewProvider(SceneInspectorProvider.viewType, inspectorProvider),
         statusBarManager,
         sprintManager
+    );
+
+    // Initialize Novellized Source Control provider
+    let activeScm: NovellizedSourceControl | null = null;
+    const initScm = () => {
+        if (activeScm) {
+            activeScm.dispose();
+            activeScm = null;
+        }
+        const rootUri = vscode.workspace.workspaceFolders?.[0]?.uri;
+        if (rootUri) {
+            activeScm = new NovellizedSourceControl(rootUri);
+            context.subscriptions.push(activeScm);
+        }
+    };
+    initScm();
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeWorkspaceFolders(initScm)
     );
 
     // Synchronize active scene with Scene Inspector

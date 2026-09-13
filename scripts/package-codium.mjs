@@ -224,14 +224,13 @@ async function main() {
         "update.mode": "none",
         "workbench.enableExperiments": false,
 
-        // Developer Clutter Elimination
-        "git.enabled": false,
-        "git.path": null,
+        // Version Control Enabled
+        "git.enabled": true,
         "git.autofetch": false,
+        "scm.showHistoryGraph": true,
         "workbench.layoutControl.enabled": false,
         "debug.showInStatusBar": "never",
         "debug.toolBarLocation": "hidden",
-        "scm.showHistoryGraph": false,
         "workbench.tips.enabled": false,
         "window.restoreWindows": "none"
     };
@@ -269,13 +268,13 @@ async function main() {
         const db = new DatabaseSync(vscdbPath);
         db.exec("CREATE TABLE IF NOT EXISTS ItemTable (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB)");
 
-        // 1. Activity Bar: Pin Manuscript, Explorer, Search, and Extensions (Hide SCM & Debug)
+        // 1. Activity Bar: Pin Manuscript, Source Control, Explorer, Search, and Extensions (Hide Debug only)
         const pinnedViewlets = [
             { "id": "workbench.view.extension.novellized-manuscript", "pinned": true, "visible": true, "order": 0 },
-            { "id": "workbench.view.explorer", "pinned": true, "visible": false, "order": 1 },
-            { "id": "workbench.view.search", "pinned": true, "visible": false, "order": 2 },
-            { "id": "workbench.view.extensions", "pinned": true, "visible": false, "order": 3 },
-            { "id": "workbench.view.scm", "pinned": false, "visible": false, "order": 4 },
+            { "id": "workbench.view.scm", "pinned": true, "visible": true, "order": 1 },
+            { "id": "workbench.view.explorer", "pinned": true, "visible": false, "order": 2 },
+            { "id": "workbench.view.search", "pinned": true, "visible": false, "order": 3 },
+            { "id": "workbench.view.extensions", "pinned": true, "visible": false, "order": 4 },
             { "id": "workbench.view.debug", "pinned": false, "visible": false, "order": 5 }
         ];
         db.prepare("INSERT INTO ItemTable (key, value) VALUES (?, ?)").run(
@@ -283,11 +282,10 @@ async function main() {
             JSON.stringify(pinnedViewlets)
         );
 
-        // 2. Status Bar: Hide Problems counter and SCM/Git
+        // 2. Status Bar: Hide Problems counter
         const hiddenStatusItems = [
             "status.problems",
-            "status.problemsVisibility",
-            "status.scm"
+            "status.problemsVisibility"
         ];
         db.prepare("INSERT INTO ItemTable (key, value) VALUES (?, ?)").run(
             'workbench.statusbar.hidden',
@@ -301,8 +299,8 @@ async function main() {
         );
 
         db.close();
-        console.log('✓ Activity Bar pinned to: Manuscript, Explorer, Search (SCM and Debug removed)');
-        console.log('✓ Status Bar problems counter and git branch hidden');
+        console.log('✓ Activity Bar pinned to: Manuscript, Source Control, Explorer, Search (Debug removed)');
+        console.log('✓ Status Bar problems counter hidden (Source Control enabled)');
     } catch (e) {
         console.warn('⚠️ Could not configure state.vscdb:', e.message);
     }

@@ -15,10 +15,12 @@ export interface SnapshotItem {
 }
 
 export class SnapshotManager {
+    public static readonly onDidSnapshot = new vscode.EventEmitter<vscode.Uri>();
+
     /**
      * Resolves root workspace URI
      */
-    private static getRootUri(uri: vscode.Uri): vscode.Uri | undefined {
+    public static getRootUri(uri: vscode.Uri): vscode.Uri | undefined {
         const folder = vscode.workspace.getWorkspaceFolder(uri);
         return folder?.uri || vscode.workspace.workspaceFolders?.[0]?.uri;
     }
@@ -26,7 +28,7 @@ export class SnapshotManager {
     /**
      * Resolves the sandboxed git directory for isomorphic-git (.novel/.git)
      */
-    private static getGitDir(rootUri: vscode.Uri): string {
+    public static getGitDir(rootUri: vscode.Uri): string {
         return path.join(rootUri.fsPath, '.novel', '.git');
     }
 
@@ -134,6 +136,8 @@ export class SnapshotManager {
 
         const words = content.trim().split(/\s+/).filter(Boolean).length;
         const dateStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' · ' + date.toLocaleDateString();
+
+        this.onDidSnapshot.fire(sceneUri);
 
         return {
             id: oid,
@@ -327,5 +331,154 @@ export class SnapshotManager {
         const snapshotUri = vscode.Uri.file(tempDiffPath);
         const title = `${path.basename(sceneUri.fsPath)} (Snapshot: ${label}) ⟷ Current`;
         await vscode.commands.executeCommand('vscode.diff', snapshotUri, sceneUri, title);
+    }
+
+    /**
+     * Opens diff editor comparing current scene against previous checkpoint (HEAD)
+     */
+    public static async compareWithHead(sceneUri: vscode.Uri): Promise<void> {
+        const rootUri = this.getRootUri(sceneUri);
+        if (!rootUri) return;
+
+        const gitdir = this.getGitDir(rootUri);
+        if (!fs.existsSync(gitdir)) {
+            await vscode.window.showTextDocument(sceneUri);
+            return;
+        }
+
+        const filepath = path.relative(rootUri.fsPath, sceneUri.fsPath).replace(/\\/g, '/');
+
+        try {
+            const headOid = await git.resolveRef({ fs, dir: rootUri.fsPath, gitdir, ref: 'HEAD' });
+            const { blob } = await git.readBlob({
+                fs,
+                dir: rootUri.fsPath,
+                gitdir,
+                oid: headOid,
+                filepath
+            });
+            const headText = Buffer.from(blob).toString('utf8');
+
+            const diffCacheDir = path.join(rootUri.fsPath, '.novel', 'diff_cache');
+            if (!fs.existsSync(diffCacheDir)) {
+                fs.mkdirSync(diffCacheDir, { recursive: true });
+            }
+
+            const tempDiffPath = path.join(diffCacheDir, `${path.basename(sceneUri.fsPath, '.md')}_HEAD.md`);
+            fs.writeFileSync(tempDiffPath, headText, 'utf8');
+
+            const snapshotUri = vscode.Uri.file(tempDiffPath);
+            const title = `${path.basename(sceneUri.fsPath)} (Last Checkpoint ⟷ Current)`;
+            await vscode.commands.executeCommand('vscode.diff', snapshotUri, sceneUri, title);
+        } catch {
+            // New file without HEAD commit, open directly
+            await vscode.window.showTextDocument(sceneUri);
+        }
+    }
+
+    /**
+     * Creates a manuscript-wide checkpoint for all modified scenes
+     */
+    public static async createProjectCheckpoint(rootUri: vscode.Uri, label?: string): Promise<string | null> {
+        const gitdir = await this.ensureRepo(rootUri);
+
+        // Flush all open dirty markdown documents
+        for (const doc of vscode.workspace.textDocuments) {
+            if (doc.isDirty && doc.uri.fsPath.endsWith('.md')) {
+                await doc.save();
+            }
+        }
+
+        // Query status matrix for markdown files
+        const matrix = await git.statusMatrix({
+            fs,
+            dir: rootUri.fsPath,
+            gitdir,
+            filter: (f) => f.endsWith('.md') && !f.startsWith('.novel/')
+        });
+
+        let changedCount = 0;
+        for (const [filepath, head, workdir] of matrix) {
+            const isModified = workdir === 2 && head === 1;
+            const isNew = head === 0 && workdir === 2;
+            const isDeleted = workdir === 0 && head === 1;
+
+            if (isModified || isNew) {
+                await git.add({ fs, dir: rootUri.fsPath, gitdir, filepath });
+                changedCount++;
+            } else if (isDeleted) {
+                await git.remove({ fs, dir: rootUri.fsPath, gitdir, filepath });
+                changedCount++;
+            }
+        }
+
+        if (changedCount === 0) {
+            return null;
+        }
+
+        const now = Date.now();
+        const date = new Date(now);
+        const author = this.getAuthorInfo(rootUri);
+        const commitMsg = (label || 'Manuscript Checkpoint').trim() || 'Manuscript Checkpoint';
+
+        const oid = await git.commit({
+            fs,
+            dir: rootUri.fsPath,
+            gitdir,
+            message: commitMsg,
+            author: {
+                name: author.name,
+                email: author.email,
+                timestamp: Math.floor(now / 1000),
+                timezoneOffset: date.getTimezoneOffset()
+            },
+            committer: {
+                name: author.name,
+                email: author.email,
+                timestamp: Math.floor(now / 1000),
+                timezoneOffset: date.getTimezoneOffset()
+            }
+        });
+
+        this.onDidSnapshot.fire(rootUri);
+        return oid;
+    }
+
+    /**
+     * Discards changes in a scene and reverts back to the last checkpoint (HEAD)
+     */
+    public static async discardChanges(sceneUri: vscode.Uri): Promise<boolean> {
+        const rootUri = this.getRootUri(sceneUri);
+        if (!rootUri) return false;
+
+        const gitdir = this.getGitDir(rootUri);
+        if (!fs.existsSync(gitdir)) return false;
+
+        const filepath = path.relative(rootUri.fsPath, sceneUri.fsPath).replace(/\\/g, '/');
+
+        try {
+            const headOid = await git.resolveRef({ fs, dir: rootUri.fsPath, gitdir, ref: 'HEAD' });
+            const { blob } = await git.readBlob({
+                fs,
+                dir: rootUri.fsPath,
+                gitdir,
+                oid: headOid,
+                filepath
+            });
+            const headText = Buffer.from(blob).toString('utf8');
+
+            const doc = await vscode.workspace.openTextDocument(sceneUri);
+            const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
+            const edit = new vscode.WorkspaceEdit();
+            edit.replace(sceneUri, fullRange, headText);
+            const success = await vscode.workspace.applyEdit(edit);
+            if (success) {
+                await doc.save();
+                this.onDidSnapshot.fire(sceneUri);
+            }
+            return success;
+        } catch {
+            return false;
+        }
     }
 }
