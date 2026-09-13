@@ -7,6 +7,9 @@ import { ProjectStatsTreeProvider } from './projectStatsTree';
 import { BibleTreeProvider } from './bibleTree';
 import { importDocxManuscript, copyAiOrganizePrompt } from './docxImporter';
 import { exportToEpub, exportToPdf, openPrintableBookView } from './exporter';
+import { WriterStatusBarManager } from './statusBar';
+import { ZenModeManager } from './zenMode';
+import { applyNovelistPreset } from './novelistSettings';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
@@ -15,17 +18,20 @@ export function activate(context: vscode.ExtensionContext) {
     const manuscriptProvider = new ManuscriptTreeProvider();
     const statsProvider = new ProjectStatsTreeProvider();
     const bibleProvider = new BibleTreeProvider();
+    const statusBarManager = new WriterStatusBarManager();
 
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('novellized.manuscriptView', manuscriptProvider),
         vscode.window.registerTreeDataProvider('novellized.projectStatsView', statsProvider),
-        vscode.window.registerTreeDataProvider('novellized.bibleView', bibleProvider)
+        vscode.window.registerTreeDataProvider('novellized.bibleView', bibleProvider),
+        statusBarManager
     );
 
     const refreshAll = () => {
         manuscriptProvider.refresh();
         statsProvider.refresh();
         bibleProvider.refresh();
+        statusBarManager.refresh();
     };
 
     // Watch files to update word count and structure in real-time
@@ -180,6 +186,18 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('novellized.previewPrintableBook', async (item?: any) => {
             await openPrintableBookView(item?.resourceUri);
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.toggleZenMode', async () => {
+            await ZenModeManager.toggleZenMode();
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('novellized.applyNovelistPreset', async () => {
+            await applyNovelistPreset();
         })
     );
 }

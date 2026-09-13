@@ -1,0 +1,69 @@
+{
+  "$schema": "vscode://schemas/color-theme",
+  "name": "Novellized E-Ink Monochrome",
+  "type": "light",
+  "colors": {
+    "editor.background": "#FFFFFF",
+    "editor.foreground": "#111111",
+    "editorCursor.foreground": "#000000",
+    "editor.lineHighlightBackground": "#F7F7F7",
+    "editor.selectionBackground": "#DCDCDC",
+    "editorLineNumber.foreground": "#AAAAAA",
+    "editorLineNumber.activeForeground": "#111111",
+
+    "activityBar.background": "#EEEEEE",
+    "activityBar.foreground": "#111111",
+    "activityBar.inactiveForeground": "#777777",
+    "activityBar.activeBorder": "#111111",
+    "activityBarBadge.background": "#111111",
+    "activityBarBadge.foreground": "#FFFFFF",
+
+    "sideBar.background": "#F7F7F7",
+    "sideBar.foreground": "#222222",
+    "sideBar.border": "#DDDDDD",
+    "sideBarTitle.foreground": "#111111",
+    "sideBarSectionHeader.background": "#EEEEEE",
+    "sideBarSectionHeader.foreground": "#111111",
+
+    "statusBar.background": "#EAEAEA",
+    "statusBar.foreground": "#222222",
+    "statusBarItem.hoverBackground": "#D8D8D8",
+
+    "titleBar.activeBackground": "#EEEEEE",
+    "titleBar.activeForeground": "#111111",
+    "titleBar.inactiveBackground": "#F7F7F7",
+    "titleBar.inactiveForeground": "#777777",
+
+    "tab.activeBackground": "#FFFFFF",
+    "tab.activeForeground": "#111111",
+    "tab.inactiveBackground": "#EAEAEA",
+    "tab.inactiveForeground": "#555555",
+    "tab.border": "#DDDDDD"
+  },
+  "tokenColors": [
+    {
+      "scope": ["heading.1.markdown", "markup.heading.1"],
+      "settings": { "fontStyle": "bold", "foreground": "#000000" }
+    },
+    {
+      "scope": ["heading.2.markdown", "markup.heading.2"],
+      "settings": { "fontStyle": "bold", "foreground": "#1A1A1A" }
+    },
+    {
+      "scope": ["heading.3.markdown", "markup.heading.3"],
+      "settings": { "fontStyle": "bold italic", "foreground": "#333333" }
+    },
+    {
+      "scope": ["markup.italic"],
+      "settings": { "fontStyle": "italic" }
+    },
+    {
+      "scope": ["markup.bold"],
+      "settings": { "fontStyle": "bold" }
+    },
+    {
+      "scope": ["markup.quote"],
+      "settings": { "fontStyle": "italic", "foreground": "#444444" }
+    }
+  ]
+}

@@ -136,6 +136,16 @@
         "command": "novellized.previewPrintableBook",
         "title": "Novellized: Open Printable Book Preview (HTML / Print)",
         "icon": "$(eye)"
+      },
+      {
+        "command": "novellized.toggleZenMode",
+        "title": "Novellized: Toggle Zen Writing Mode (Distraction-Free)",
+        "icon": "$(screen-full)"
+      },
+      {
+        "command": "novellized.applyNovelistPreset",
+        "title": "Novellized: Apply Writer's Settings Preset (Word Wrap, Clean Typography)",
+        "icon": "$(gear)"
       }
     ],
     "menus": {
@@ -250,13 +260,70 @@
         "view": "explorer",
         "contents": "Start your literary project with Novellized.\n[Create New Novel Project](command:novellized.createNewNovel)"
       }
+    ],
+    "keybindings": [
+      {
+        "command": "novellized.toggleZenMode",
+        "key": "alt+z",
+        "mac": "cmd+alt+z"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Novellized Warm Parchment",
+        "uiTheme": "vs",
+        "path": "./themes/warm-parchment.json"
+      },
+      {
+        "label": "Novellized Midnight Candle",
+        "uiTheme": "vs-dark",
+        "path": "./themes/midnight-candle.json"
+      },
+      {
+        "label": "Novellized E-Ink Monochrome",
+        "uiTheme": "vs",
+        "path": "./themes/e-ink.json"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "novellized.welcome",
+        "title": "Welcome to Novellized Studio",
+        "description": "Your telemetry-free, distraction-free environment for novel writing.",
+        "steps": [
+          {
+            "id": "novellized.step.create",
+            "title": "Create a Novel Project",
+            "description": "Initialize a professional novel structure (Part ➔ Chapter ➔ Scene) with character and worldbuilding bibles.\n[Create New Novel Project](command:novellized.createNewNovel)",
+            "completionEvents": ["onCommand:novellized.createNewNovel"]
+          },
+          {
+            "id": "novellized.step.write",
+            "title": "Focus Mode & Typewriter Scrolling",
+            "description": "Open any scene in Novellized Live View. Enjoy smooth typewriter scrolling and paragraph-dimming focus mode for deep flow state."
+          },
+          {
+            "id": "novellized.step.preset",
+            "title": "Apply Writer's Settings Preset",
+            "description": "Turn off code line numbers, minimap, and syntax popups to make the editor feel like a pure novel writing app.\n[Apply Writer Preset](command:novellized.applyNovelistPreset)",
+            "completionEvents": ["onCommand:novellized.applyNovelistPreset"]
+          },
+          {
+            "id": "novellized.step.export",
+            "title": "Export to EPUB & PDF",
+            "description": "Compile your entire manuscript into a standard EPUB 3 ebook or publication-grade PDF in seconds.\n[Export as EPUB](command:novellized.exportEpub) | [Export as PDF](command:novellized.exportPdf)",
+            "completionEvents": ["onCommand:novellized.exportEpub", "onCommand:novellized.exportPdf"]
+          }
+        ]
+      }
     ]
   },
   "scripts": {
     "vscode:prepublish": "node esbuild.config.mjs --production",
     "compile": "tsc -noEmit",
     "watch": "node esbuild.config.mjs --watch",
-    "build": "node esbuild.config.mjs --production"
+    "build": "node esbuild.config.mjs --production",
+    "package:ide": "node scripts/package-codium.mjs"
   },
   "dependencies": {
     "@tiptap/core": "^2.11.5",
