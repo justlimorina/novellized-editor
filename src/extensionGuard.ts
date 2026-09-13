@@ -99,7 +99,7 @@ export function initExtensionGuard(context: vscode.ExtensionContext) {
 
                 const displayName = ext.packageJSON?.displayName || ext.packageJSON?.name || ext.id;
                 const choice = await vscode.window.showWarningMessage(
-                    `⚠️ Novellized Studio: The extension "${displayName}" appears to be a developer tool and is not optimized for novel writing. It may add unnecessary clutter or impact performance.`,
+                    `Novellized Studio: The extension "${displayName}" appears to be a developer tool and is not optimized for novel writing. It may add unnecessary clutter or impact performance.`,
                     'View Details',
                     'Keep Anyway'
                 );

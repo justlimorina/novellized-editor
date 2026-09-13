@@ -48,6 +48,12 @@
           "id": "novellized.sceneInspectorView",
           "name": "Scene Inspector"
         }
+      ],
+      "scm": [
+        {
+          "id": "novellized.snapshotHistoryView",
+          "name": "Checkpoints & Snapshots (Lịch Sử Bản Lưu)"
+        }
       ]
     },
     "customEditors": [
@@ -187,6 +193,16 @@
         "command": "novellized.scmDiscard",
         "title": "Novellized: Discard Changes (Revert to Checkpoint)",
         "icon": "$(discard)"
+      },
+      {
+        "command": "novellized.refreshSnapshotHistory",
+        "title": "Novellized: Refresh Checkpoints & Snapshots",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "novellized.compareSnapshotFile",
+        "title": "Novellized: Compare File with Checkpoint",
+        "icon": "$(git-compare)"
       }
     ],
     "menus": {
@@ -242,6 +258,16 @@
           "command": "novellized.openSourceControl",
           "when": "view == novellized.manuscriptView",
           "group": "navigation@8"
+        },
+        {
+          "command": "novellized.refreshSnapshotHistory",
+          "when": "view == novellized.snapshotHistoryView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "novellized.scmCommit",
+          "when": "view == novellized.snapshotHistoryView",
+          "group": "navigation@2"
         }
       ],
       "scm/title": [
@@ -336,7 +362,7 @@
     "viewsWelcome": [
       {
         "view": "novellized.manuscriptView",
-        "contents": "No novel manuscript found in this workspace.\n[Create New Novel Project](command:novellized.createNewNovel)\n[📥 Import from Word (.docx)](command:novellized.importDocx)"
+        "contents": "No novel manuscript found in this workspace.\n[Create New Novel Project](command:novellized.createNewNovel)\n[Import from Word (.docx)](command:novellized.importDocx)"
       },
       {
         "view": "explorer",

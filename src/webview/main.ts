@@ -53,13 +53,13 @@ function applyFocusMode(enabled: boolean) {
         document.body.classList.add('focus-mode-active');
         if (btnToggleFocus) {
             btnToggleFocus.classList.add('active');
-            btnToggleFocus.textContent = '🎯 Focus: ON';
+            btnToggleFocus.textContent = 'Focus: ON';
         }
     } else {
         document.body.classList.remove('focus-mode-active');
         if (btnToggleFocus) {
             btnToggleFocus.classList.remove('active');
-            btnToggleFocus.textContent = '🎯 Focus: OFF';
+            btnToggleFocus.textContent = 'Focus: OFF';
         }
     }
     savePreferences();
@@ -70,12 +70,12 @@ function applyTypewriterMode(enabled: boolean) {
     if (typewriterEnabled) {
         if (btnToggleTypewriter) {
             btnToggleTypewriter.classList.add('active');
-            btnToggleTypewriter.textContent = '📜 Typewriter: ON';
+            btnToggleTypewriter.textContent = 'Typewriter: ON';
         }
     } else {
         if (btnToggleTypewriter) {
             btnToggleTypewriter.classList.remove('active');
-            btnToggleTypewriter.textContent = '📜 Typewriter: OFF';
+            btnToggleTypewriter.textContent = 'Typewriter: OFF';
         }
     }
     savePreferences();
@@ -87,13 +87,13 @@ function applyDialogueMode(enabled: boolean) {
         document.body.classList.add('dialogue-mode-active');
         if (btnToggleDialogue) {
             btnToggleDialogue.classList.add('active');
-            btnToggleDialogue.textContent = '💬 Dialogue: ON';
+            btnToggleDialogue.textContent = 'Dialogue: ON';
         }
     } else {
         document.body.classList.remove('dialogue-mode-active');
         if (btnToggleDialogue) {
             btnToggleDialogue.classList.remove('active');
-            btnToggleDialogue.textContent = '💬 Dialogue: OFF';
+            btnToggleDialogue.textContent = 'Dialogue: OFF';
         }
     }
     savePreferences();
@@ -248,13 +248,13 @@ function showMentionDropdown(matches: any[], type: 'character' | 'worldbuilding'
 function renderMentionItems(ed: Editor) {
     if (!mentionDropdownEl) return;
     mentionDropdownEl.innerHTML = '';
-    const icon = currentMentionType === 'character' ? '👤' : '🌍';
+    const tag = currentMentionType === 'character' ? '@' : '#';
 
     currentMentionMatches.slice(0, 6).forEach((item, idx) => {
         const div = document.createElement('div');
         div.className = `mention-item ${idx === selectedMentionIndex ? 'selected' : ''}`;
         div.innerHTML = `
-            <span class="entity-icon">${icon}</span>
+            <span class="entity-icon">${tag}</span>
             <span class="entity-name">${item.name}</span>
             <span class="entity-role">${item.summary || (currentMentionType === 'character' ? 'Character' : 'Lore')}</span>
         `;
@@ -352,10 +352,10 @@ function setupEntityHoverTooltips() {
             const matched = matchedChar ? { ...matchedChar, type: 'character' } : (matchedWorld ? { ...matchedWorld, type: 'worldbuilding' } : null);
 
             if (matched) {
-                const icon = matched.type === 'character' ? '👤' : '🌍';
+                const tag = matched.type === 'character' ? '@' : '#';
                 entityTooltipEl.innerHTML = `
                     <div class="tooltip-header">
-                        <span>${icon}</span>
+                        <span style="font-weight:bold;margin-right:4px;">${tag}</span>
                         <strong>${matched.name}</strong>
                     </div>
                     <div class="tooltip-body">${matched.summary || 'Entity details from Story Bible'}</div>

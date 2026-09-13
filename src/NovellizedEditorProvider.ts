@@ -96,7 +96,7 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
                     if (label !== undefined) {
                         const item = await SnapshotManager.takeSnapshot(document.uri, label);
                         if (item) {
-                            vscode.window.showInformationMessage(`📸 Snapshot "${item.label}" saved!`);
+                            vscode.window.showInformationMessage(`Snapshot "${item.label}" saved.`);
                         }
                     }
                     return;
@@ -173,16 +173,16 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
             <div class="document-stats" id="stats">0 words • 0 characters • 0 min read</div>
             <div class="toolbar-actions">
                 <button id="btn-toggle-focus" class="btn-toggle active" title="Toggle Focus Mode (Dim surrounding paragraphs)">
-                    🎯 Focus: ON
+                    Focus: ON
                 </button>
                 <button id="btn-toggle-typewriter" class="btn-toggle active" title="Toggle Typewriter Scrolling (Keep active line centered)">
-                    📜 Typewriter: ON
+                    Typewriter: ON
                 </button>
                 <button id="btn-toggle-dialogue" class="btn-toggle" title="Highlight Dialogue vs Narrative (Check Pacing)">
-                    💬 Dialogue: OFF
+                    Dialogue: OFF
                 </button>
                 <button id="btn-take-snapshot" title="Take a Quick Snapshot of this Scene">
-                    📸 Snapshot
+                    Snapshot
                 </button>
                 <button id="btn-toggle-raw" title="Switch to Raw Markdown mode (Monaco)">
                     Raw Markdown

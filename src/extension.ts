@@ -16,6 +16,7 @@ import { CorkboardManager } from './corkboardProvider';
 import { SnapshotManager } from './snapshotManager';
 import { WritingSprintManager } from './writingSprint';
 import { NovellizedSourceControl } from './novellizedSourceControl';
+import { SnapshotHistoryTreeProvider } from './snapshotHistoryTree';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
@@ -28,11 +29,13 @@ export function activate(context: vscode.ExtensionContext) {
     const statusBarManager = new WriterStatusBarManager();
     const inspectorProvider = new SceneInspectorProvider(context.extensionUri);
     const sprintManager = WritingSprintManager.getInstance();
+    const snapshotHistoryProvider = new SnapshotHistoryTreeProvider();
 
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('novellized.manuscriptView', manuscriptProvider),
         vscode.window.registerTreeDataProvider('novellized.projectStatsView', statsProvider),
         vscode.window.registerTreeDataProvider('novellized.bibleView', bibleProvider),
+        vscode.window.registerTreeDataProvider('novellized.snapshotHistoryView', snapshotHistoryProvider),
         vscode.window.registerWebviewViewProvider(SceneInspectorProvider.viewType, inspectorProvider),
         statusBarManager,
         sprintManager
@@ -279,7 +282,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (label !== undefined) {
                 const snap = await SnapshotManager.takeSnapshot(targetUri, label);
                 if (snap) {
-                    vscode.window.showInformationMessage(`📸 Snapshot "${snap.label}" created!`);
+                    vscode.window.showInformationMessage(`Snapshot "${snap.label}" created.`);
                     inspectorProvider.refreshInspector();
                 }
             }
@@ -290,6 +293,14 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('novellized.startWritingSprint', async () => {
             await sprintManager.promptSprint();
+        }),
+        vscode.commands.registerCommand('novellized.refreshSnapshotHistory', () => {
+            snapshotHistoryProvider.refresh();
+        }),
+        vscode.commands.registerCommand('novellized.compareSnapshotFile', async (targetUri: vscode.Uri, commitOid: string, label: string) => {
+            if (targetUri && commitOid) {
+                await SnapshotManager.compareWithSnapshot(targetUri, commitOid, label);
+            }
         })
     );
 }

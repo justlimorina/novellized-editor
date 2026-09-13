@@ -464,7 +464,7 @@ ${ncxNavPoints.join('\n')}
     });
 
     const action = await vscode.window.showInformationMessage(
-        `✓ Exported EPUB successfully: "${path.basename(targetUri.fsPath)}" (${manuscript.chapters.length} chapters, ${manuscript.totalWords.toLocaleString()} words)`,
+        `Exported EPUB successfully: "${path.basename(targetUri.fsPath)}" (${manuscript.chapters.length} chapters, ${manuscript.totalWords.toLocaleString()} words)`,
         'Open File',
         'Reveal in Explorer'
     );
@@ -716,7 +716,7 @@ export function generatePrintableBookHtml(manuscript: CompiledManuscript): strin
   <div class="print-bar no-print">
     <div><strong>Novellized Book Preview:</strong> ${escapeXml(manuscript.metadata.title)} (${manuscript.chapters.length} chapters · ${manuscript.totalWords.toLocaleString()} words)</div>
     <button class="print-btn" onclick="window.print()">
-      🖨️ In / Lưu file PDF (Print to PDF)
+      In / Luu file PDF (Print to PDF)
     </button>
   </div>
 
@@ -798,7 +798,7 @@ export async function exportToPdf(workspaceUri?: vscode.Uri): Promise<void> {
         });
 
         const action = await vscode.window.showInformationMessage(
-            `✓ Exported PDF successfully: "${path.basename(targetUri.fsPath)}" (${manuscript.chapters.length} chapters, ${manuscript.totalWords.toLocaleString()} words)`,
+            `Exported PDF successfully: "${path.basename(targetUri.fsPath)}" (${manuscript.chapters.length} chapters, ${manuscript.totalWords.toLocaleString()} words)`,
             'Open PDF',
             'Reveal in Explorer'
         );

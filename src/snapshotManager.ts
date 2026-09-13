@@ -250,6 +250,64 @@ export class SnapshotManager {
     }
 
     /**
+     * Lists all project-wide checkpoints from git history
+     */
+    public static async listAllSnapshots(rootUri: vscode.Uri): Promise<SnapshotItem[]> {
+        const gitdir = this.getGitDir(rootUri);
+        if (!fs.existsSync(gitdir)) return [];
+
+        try {
+            const commits = await git.log({
+                fs,
+                dir: rootUri.fsPath,
+                gitdir,
+                depth: 100
+            });
+
+            const items: SnapshotItem[] = [];
+            for (const c of commits) {
+                const oid = c.oid;
+                const timestamp = (c.commit.committer?.timestamp || c.commit.author?.timestamp || 0) * 1000;
+                const date = new Date(timestamp);
+                const dateStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' · ' + date.toLocaleDateString();
+
+                items.push({
+                    id: oid,
+                    oid,
+                    label: c.commit.message || 'Checkpoint',
+                    timestamp,
+                    dateStr,
+                    words: 0,
+                    isLegacy: false
+                });
+            }
+            return items;
+        } catch {
+            return [];
+        }
+    }
+
+    /**
+     * Retrieves the list of tracked manuscript files in a specific commit
+     */
+    public static async getFilesAtCommit(rootUri: vscode.Uri, oid: string): Promise<string[]> {
+        const gitdir = this.getGitDir(rootUri);
+        if (!fs.existsSync(gitdir)) return [];
+
+        try {
+            const files = await git.listFiles({
+                fs,
+                dir: rootUri.fsPath,
+                gitdir,
+                ref: oid
+            });
+            return files.filter(f => f.endsWith('.md') && !f.startsWith('.novel/'));
+        } catch {
+            return [];
+        }
+    }
+
+    /**
      * Reads the snapshot text content given a snapshot identifier (git OID or legacy path)
      */
     public static async getSnapshotContent(sceneUri: vscode.Uri, snapshotId: string): Promise<string> {

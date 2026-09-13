@@ -50,7 +50,7 @@ export class SceneInspectorProvider implements vscode.WebviewViewProvider {
 
                     const item = await SnapshotManager.takeSnapshot(this.activeSceneUri, label);
                     if (item) {
-                        vscode.window.showInformationMessage(`📸 Snapshot "${item.label}" created!`);
+                        vscode.window.showInformationMessage(`Snapshot "${item.label}" created.`);
                         await this.refreshInspector();
                     }
                     break;
@@ -67,7 +67,7 @@ export class SceneInspectorProvider implements vscode.WebviewViewProvider {
                     );
                     if (confirm === 'Restore') {
                         await SnapshotManager.restoreSnapshot(this.activeSceneUri, message.snapshotId);
-                        vscode.window.showInformationMessage(`✓ Restored scene to snapshot "${message.label}".`);
+                        vscode.window.showInformationMessage(`Restored scene to snapshot "${message.label}".`);
                         await this.refreshInspector();
                     }
                     break;
@@ -319,7 +319,6 @@ export class SceneInspectorProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
     <div id="empty-state" class="empty-state">
-        <div class="empty-icon">📖</div>
         <div><strong>No Scene Selected</strong></div>
         <div>Open or select a scene in the Manuscript tree to view its Inspector.</div>
     </div>
@@ -358,7 +357,7 @@ export class SceneInspectorProvider implements vscode.WebviewViewProvider {
 
         <div class="form-group" style="margin-top: 14px;">
             <label>Scene Snapshots (Bản lưu an toàn)</label>
-            <button id="btn-snapshot" class="btn-action btn-primary">📸 Take Snapshot</button>
+            <button id="btn-snapshot" class="btn-action btn-primary">Take Snapshot</button>
             <div id="snapshot-list" class="snapshot-list"></div>
         </div>
     </div>

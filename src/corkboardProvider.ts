@@ -18,7 +18,7 @@ export class CorkboardManager {
         const chapterName = path.basename(chapterFolderUri.fsPath).replace(/^chapter[-_]/i, 'Chapter ').replace(/[-_]/g, ' ');
         const panel = vscode.window.createWebviewPanel(
             'novellized.corkboard',
-            `📌 Corkboard: ${chapterName}`,
+            `Corkboard: ${chapterName}`,
             vscode.ViewColumn.Active,
             {
                 enableScripts: true,
@@ -402,11 +402,10 @@ export class CorkboardManager {
 <body>
     <div class="board-header">
         <div class="board-title">
-            <span>📌</span>
             <span id="board-title-text">Corkboard</span>
         </div>
         <div class="board-actions">
-            <button id="btn-add-card" class="btn-board">➕ Add Scene</button>
+            <button id="btn-add-card" class="btn-board">Add Scene</button>
         </div>
     </div>
 
@@ -468,7 +467,7 @@ export class CorkboardManager {
                             <span>\${c.words.toLocaleString()} words</span>
                             \${c.pov ? \`<span class="badge-pov">POV: \${c.pov}</span>\` : ''}
                         </div>
-                        <button class="btn-open-card">Open ➔</button>
+                        <button class="btn-open-card">Open Scene</button>
                     </div>
                 \`;
 

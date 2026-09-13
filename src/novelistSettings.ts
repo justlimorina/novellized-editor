@@ -23,8 +23,8 @@ export async function applyNovelistPreset(): Promise<void> {
 
     vscode.window.showInformationMessage(
         hasWorkspace
-            ? '✓ Novellized Writer Preset applied to this workspace! Clean typography and word wrap enabled.'
-            : '✓ Novellized Writer Preset applied globally! Clean typography and word wrap enabled.'
+            ? 'Novellized Writer Preset applied to this workspace. Clean typography and word wrap enabled.'
+            : 'Novellized Writer Preset applied globally. Clean typography and word wrap enabled.'
     );
 }
 

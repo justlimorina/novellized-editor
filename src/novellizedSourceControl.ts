@@ -80,7 +80,7 @@ export class NovellizedSourceControl implements vscode.Disposable {
                 if (confirm === 'Discard Changes') {
                     const success = await SnapshotManager.discardChanges(targetUri);
                     if (success) {
-                        vscode.window.showInformationMessage(`✓ Reverted "${name}" to previous checkpoint.`);
+                        vscode.window.showInformationMessage(`Reverted "${name}" to previous checkpoint.`);
                         this.refresh();
                     } else {
                         vscode.window.showErrorMessage(`Could not revert "${name}".`);
@@ -177,7 +177,7 @@ export class NovellizedSourceControl implements vscode.Disposable {
 
         if (oid) {
             this.sc.inputBox.value = '';
-            vscode.window.showInformationMessage(`📸 Checkpoint "${commitLabel}" saved! (#${oid.slice(0, 7)})`);
+            vscode.window.showInformationMessage(`Checkpoint "${commitLabel}" saved (#${oid.slice(0, 7)}).`);
             await this.refresh();
         } else {
             vscode.window.showInformationMessage('No changes detected in manuscript to checkpoint.');

@@ -43,12 +43,12 @@ export class WritingSprintManager implements vscode.Disposable {
         }
 
         const picked = await vscode.window.showQuickPick([
-            { label: '⏱️ 15 Minutes Sprint', description: 'Quick power session', value: 15 },
-            { label: '⏱️ 20 Minutes Sprint', description: 'Standard writing burst', value: 20 },
-            { label: '⏱️ 25 Minutes (Pomodoro)', description: 'Classic focus interval', value: 25 },
-            { label: '⏱️ 30 Minutes Sprint', description: 'Deep flow session', value: 30 },
-            { label: '⏱️ 45 Minutes Sprint', description: 'Extended chapter draft', value: 45 },
-            { label: '⚙️ Custom Duration...', description: 'Specify custom minutes', value: -1 }
+            { label: '15 Minutes Sprint', description: 'Quick power session', value: 15 },
+            { label: '20 Minutes Sprint', description: 'Standard writing burst', value: 20 },
+            { label: '25 Minutes (Pomodoro)', description: 'Classic focus interval', value: 25 },
+            { label: '30 Minutes Sprint', description: 'Deep flow session', value: 30 },
+            { label: '45 Minutes Sprint', description: 'Extended chapter draft', value: 45 },
+            { label: 'Custom Duration...', description: 'Specify custom minutes', value: -1 }
         ], {
             title: 'Novellized Writing Sprint',
             placeHolder: 'Select sprint duration to boost your writing momentum'
@@ -109,7 +109,7 @@ export class WritingSprintManager implements vscode.Disposable {
             }
         }, 1000);
 
-        vscode.window.showInformationMessage(`🔥 Writing Sprint started! ${minutes} minutes on the clock. Write with all your heart!`);
+        vscode.window.showInformationMessage(`Writing Sprint started: ${minutes} minutes on the clock.`);
     }
 
     public async stopSprint(silent: boolean = false): Promise<void> {
@@ -137,9 +137,9 @@ export class WritingSprintManager implements vscode.Disposable {
         const wpm = durationMinutes > 0 ? (this.currentSessionWords / durationMinutes).toFixed(1) : '0';
 
         vscode.window.showInformationMessage(
-            `🎉 SPRINT COMPLETE! You wrote ${this.currentSessionWords.toLocaleString()} words in ${durationMinutes} minutes (~${wpm} wpm). Outstanding progress!`,
+            `Sprint Complete: You wrote ${this.currentSessionWords.toLocaleString()} words in ${durationMinutes} minutes (~${wpm} wpm).`,
             { modal: true },
-            'Great!'
+            'Close'
         );
     }
 

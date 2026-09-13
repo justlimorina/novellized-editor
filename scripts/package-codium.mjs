@@ -181,6 +181,36 @@ async function main() {
             console.log('✓ Extension publishers auto-trusted (bypassed untrusted publisher modal)');
         }
 
+        // 1. Patch Welcome Page Subtitle ("Editing evolved" -> Literary tagline)
+        const subtitleSnippet = 'x("p.subtitle.description",{},d(22616,null))';
+        if (jsContent.includes(subtitleSnippet)) {
+            jsContent = jsContent.replace(subtitleSnippet, 'x("p.subtitle.description",{},"Môi trường sáng tác văn học & tiểu thuyết chuyên nghiệp")');
+            console.log('✓ Welcome Page subtitle updated to literary tagline');
+        }
+
+        // 2. Prune developer items from Welcome Start list (Git clone, remote connect)
+        const gitClonePattern = /\{id:"topLevelGitClone",[^}]+\},?/;
+        const gitOpenPattern = /\{id:"topLevelGitOpen",[^}]+\},?/;
+        const remoteOpenPattern = /\{id:"topLevelRemoteOpen",[^}]+\},?/;
+        if (gitClonePattern.test(jsContent)) {
+            jsContent = jsContent.replace(gitClonePattern, '').replace(gitOpenPattern, '').replace(remoteOpenPattern, '');
+            console.log('✓ Developer start items (Git clone, remote connect) removed from Welcome page');
+        }
+
+        // 3. Patch Recent list to display Novel Title from .novel/project.json and full filesystem path
+        const recentSnippet = 'const{name:a,parentPath:l}=bIi(n),c=x("li"),h=x("button.button-link");h.innerText=a,h.title=n';
+        if (jsContent.includes(recentSnippet)) {
+            const replacement = 'const{name:a,parentPath:l}=bIi(n);const fullPath=r?.fsPath||r?.path||n;const c=x("li"),h=x("button.button-link");h.innerText=a;h.title=fullPath;if(this.fileService&&r){try{const pUri=r.with({path:(r.path.endsWith("/")?r.path:r.path+"/") + ".novel/project.json"});this.fileService.readFile(pUri).then(_res=>{try{const _d=JSON.parse(new TextDecoder().decode(_res.value.buffer));if(_d&&_d.title){h.innerText=_d.title;h.title=_d.title+" ("+fullPath+")";}}catch{}}).catch(()=>{});}catch{}}';
+            jsContent = jsContent.replace(recentSnippet, replacement);
+            console.log('✓ Recent list title patched to read from .novel/project.json');
+        }
+
+        const pathSnippet = 'u.innerText=l,u.title=n';
+        if (jsContent.includes(pathSnippet)) {
+            jsContent = jsContent.replace(pathSnippet, 'u.innerText=fullPath,u.title=fullPath');
+            console.log('✓ Recent list path patched to display full actual filesystem path');
+        }
+
         fs.writeFileSync(workbenchMainJs, jsContent, 'utf8');
     }
 
@@ -324,8 +354,11 @@ async function main() {
         product.enableTelemetry = false;
         product.sendASARTelemetry = false;
 
+        // Eliminate "installation appears to be corrupt" checksum warning
+        delete product.checksums;
+
         fs.writeFileSync(productJsonPath, JSON.stringify(product, null, 2), 'utf8');
-        console.log('✓ product.json updated with Novellized Studio branding');
+        console.log('✓ product.json updated with Novellized Studio branding & checksums disabled');
     }
 
     // 9. Rename Executable
