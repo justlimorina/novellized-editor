@@ -205,3 +205,4 @@ export class WriterStatusBarManager implements vscode.Disposable {
         }
     }
 }
+

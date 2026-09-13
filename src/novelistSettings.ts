@@ -22,3 +22,4 @@ export async function applyNovelistPreset(): Promise<void> {
         '✓ Novellized Writer Preset applied! Distraction-free typography, word wrap, and clean writing mode enabled.'
     );
 }
+

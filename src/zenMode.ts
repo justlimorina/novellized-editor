@@ -15,3 +15,4 @@ export class ZenModeManager {
         await vscode.commands.executeCommand('workbench.action.toggleZenMode');
     }
 }
+
