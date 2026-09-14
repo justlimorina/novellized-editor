@@ -126,25 +126,25 @@ export function generateAllIcons(resourcesDir = path.resolve('resources')) {
         const pngData = resvg.render();
         const buffer = pngData.asPng();
         renderedList.push({ size, buffer });
-        console.log(`✓ Rendered ${size}x${size} icon frame (${(buffer.length / 1024).toFixed(1)} KB)`);
+        console.log(`[OK] Rendered ${size}x${size} icon frame (${(buffer.length / 1024).toFixed(1)} KB)`);
     }
 
     // 1. Write resources/icon.ico
     const icoPath = path.join(resourcesDir, 'icon.ico');
     const icoBuffer = buildIcoBuffer(renderedList);
     fs.writeFileSync(icoPath, icoBuffer);
-    console.log(`✓ Created Windows icon file: ${icoPath} (${(icoBuffer.length / 1024).toFixed(1)} KB, ${SIZES.length} sizes)`);
+    console.log(`[OK] Created Windows icon file: ${icoPath} (${(icoBuffer.length / 1024).toFixed(1)} KB, ${SIZES.length} sizes)`);
 
     // 2. Write resources/icon.png (256x256)
     const png256 = renderedList.find(i => i.size === 256).buffer;
     const pngPath = path.join(resourcesDir, 'icon.png');
     fs.writeFileSync(pngPath, png256);
-    console.log(`✓ Created PNG preview: ${pngPath}`);
+    console.log(`[OK] Created PNG preview: ${pngPath}`);
 
     // 3. Update resources/icon.svg
     const svgPath = path.join(resourcesDir, 'icon.svg');
     fs.writeFileSync(svgPath, NOVELLIZED_SVG, 'utf8');
-    console.log(`✓ Created SVG master: ${svgPath}`);
+    console.log(`[OK] Created SVG master: ${svgPath}`);
 
     return { icoPath, pngPath, svgPath };
 }

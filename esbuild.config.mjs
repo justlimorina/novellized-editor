@@ -16,7 +16,7 @@ function copyStyles() {
   const dest = path.join('dist', 'styles.css');
   if (fs.existsSync(src)) {
     fs.copyFileSync(src, dest);
-    console.log('✓ Copied styles.css to dist/');
+    console.log('[OK] Copied styles.css to dist/');
   }
 }
 
@@ -67,7 +67,7 @@ async function main() {
       esbuild.build(extensionConfig),
       esbuild.build(webviewConfig)
     ]);
-    console.log('✓ Extension & Webview built successfully!');
+    console.log('[OK] Extension & Webview built successfully!');
   }
 }
 

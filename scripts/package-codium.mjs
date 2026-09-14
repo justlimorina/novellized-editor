@@ -18,7 +18,7 @@ async function ensureDir(dir) {
 }
 
 async function getLatestVSCodiumRelease() {
-    console.log('🔍 Checking latest VSCodium release on GitHub...');
+    console.log('[INFO] Checking latest VSCodium release on GitHub...');
     const res = await fetch('https://api.github.com/repos/VSCodium/vscodium/releases/latest', {
         headers: { 'User-Agent': 'Novellized-Studio-Packager' }
     });
@@ -40,15 +40,15 @@ async function getLatestVSCodiumRelease() {
 
 async function downloadFile(url, destPath) {
     if (fs.existsSync(destPath)) {
-        console.log(`✓ Using cached VSCodium archive: ${destPath}`);
+        console.log(`[OK] Using cached VSCodium archive: ${destPath}`);
         return;
     }
-    console.log(`📥 Downloading ${url} ...`);
+    console.log(`[INFO] Downloading ${url} ...`);
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Download failed: ${res.statusText}`);
     const buffer = Buffer.from(await res.arrayBuffer());
     fs.writeFileSync(destPath, buffer);
-    console.log(`✓ Download completed: ${(buffer.length / (1024 * 1024)).toFixed(1)} MB`);
+    console.log(`[OK] Download completed: ${(buffer.length / (1024 * 1024)).toFixed(1)} MB`);
 }
 
 function copyDirSync(src, dest) {
@@ -80,7 +80,7 @@ async function main() {
 
     // 2. Fetch VSCodium
     const release = await getLatestVSCodiumRelease();
-    console.log(`✓ Target VSCodium version: ${release.version} (${release.name})`);
+    console.log(`[OK] Target VSCodium version: ${release.version} (${release.name})`);
 
     const zipPath = path.join(CACHE_DIR, release.name);
     await downloadFile(release.url, zipPath);
@@ -96,7 +96,7 @@ async function main() {
             try {
                 fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
             } catch (err) {
-                console.warn('⚠️ Could not remove entire directory, continuing with overwrite...');
+                console.warn('[WARN] Could not remove entire directory, continuing with overwrite...');
             }
         }
         ensureDir(OUTPUT_DIR);
@@ -124,7 +124,8 @@ async function main() {
         'theme-seti',
         'theme-modern-icons',
         'simple-browser',
-        'node_modules'
+        'node_modules',
+        'novellized-editor'
     ]);
 
     if (fs.existsSync(builtInExtDir)) {
@@ -136,7 +137,7 @@ async function main() {
                 prunedCount++;
             }
         }
-        console.log(`✓ Pruned ${prunedCount} unused developer extensions (languages, debuggers, git, build tools)`);
+        console.log(`[OK] Pruned ${prunedCount} unused developer extensions (languages, debuggers, git, build tools)`);
     }
 
     // 5. Patch Workbench Menubar (Remove "Run" and "Terminal" menus)
@@ -154,9 +155,9 @@ async function main() {
         // Always restore pristine workbench.desktop.main.js from cache archive first to prevent corrupting re-runs
         try {
             execSync(`tar -xf "${zipPath}" -C "${OUTPUT_DIR}" resources/app/out/vs/workbench/workbench.desktop.main.js`, { stdio: 'pipe' });
-            console.log('✓ Restored pristine workbench.desktop.main.js from archive for patching');
+            console.log('[OK] Restored pristine workbench.desktop.main.js from archive for patching');
         } catch (e) {
-            console.warn('• Could not restore pristine workbench file, patching in-place:', e.message);
+            console.warn('[WARN] Could not restore pristine workbench file, patching in-place:', e.message);
         }
 
         let jsContent = fs.readFileSync(workbenchMainJs, 'utf8');
@@ -168,62 +169,112 @@ async function main() {
 
         if (hasTerm || hasRun) {
             jsContent = jsContent.replace(termPattern, '').replace(runPattern, '');
-            console.log('✓ "Run" and "Terminal" menus completely removed from top Menu Bar');
+            console.log('[OK] "Run" and "Terminal" menus completely removed from top Menu Bar');
         } else {
-            console.log('• Menus already patched or patterns not found');
+            console.log('[INFO] Menus already patched or patterns not found');
         }
 
-        // Remove Run & Debug from Sidebar (Activity Bar)
+        // Remove Run & Debug from Sidebar (Activity Bar) across ALL profiles (including fresh installed profiles)
+        const defaultPinnedViewletsStr = JSON.stringify([
+            { id: "workbench.view.extension.novellized-manuscript", pinned: true, visible: true, order: 0 },
+            { id: "workbench.view.scm", pinned: true, visible: true, order: 1 },
+            { id: "workbench.view.explorer", pinned: true, visible: false, order: 2 },
+            { id: "workbench.view.search", pinned: true, visible: false, order: 3 },
+            { id: "workbench.view.extensions", pinned: true, visible: false, order: 4 },
+            { id: "workbench.view.debug", pinned: false, visible: false, order: 5 }
+        ]);
+
+        if (jsContent.includes('storageService.get(this.options.pinnedViewContainersKey,0,"[]")')) {
+            jsContent = jsContent.replace(
+                'storageService.get(this.options.pinnedViewContainersKey,0,"[]")',
+                'storageService.get(this.options.pinnedViewContainersKey,0,' + JSON.stringify(defaultPinnedViewletsStr) + ')'
+            );
+            console.log('[OK] Default pinned viewlets set for initial profile loads');
+        }
+
+        const compositeBarIter = 'for(const n of this.getViewContainers())if(!t.some(({id:o})=>o===n.id)){';
+        if (jsContent.includes(compositeBarIter)) {
+            jsContent = jsContent.replace(
+                compositeBarIter,
+                'for(const n of this.getViewContainers())if(n.id==="workbench.view.debug")continue;else if(!t.some(({id:o})=>o===n.id)){'
+            );
+            console.log('[OK] "workbench.view.debug" excluded from composite bar registration');
+        }
+
+        const cachedViewletsIter = 'visible:!this.shouldBeHidden(f.id,f),order:f.order,pinned:f.pinned';
+        if (jsContent.includes(cachedViewletsIter)) {
+            jsContent = jsContent.replace(
+                cachedViewletsIter,
+                'visible:f.id!=="workbench.view.debug"&&!this.shouldBeHidden(f.id,f),order:f.order,pinned:f.id!=="workbench.view.debug"&&f.pinned'
+            );
+            console.log('[OK] Cached view containers filtered to unpin debug');
+        }
+
         const debugContainerPattern = /\.registerViewContainer\(\{id:Uv,title:/;
         const debugUxPattern = /vWi="debugUx",dL=new K\(vWi,"default",/;
         if (debugContainerPattern.test(jsContent)) {
             jsContent = jsContent.replace(debugContainerPattern, '.registerViewContainer({id:Uv,hideIfEmpty:!0,title:');
-            console.log('✓ "Run and Debug" view container marked hideIfEmpty:true');
+            console.log('[OK] "Run and Debug" view container marked hideIfEmpty:true');
         }
         if (debugUxPattern.test(jsContent)) {
             jsContent = jsContent.replace(debugUxPattern, 'vWi="debugUx",dL=new K(vWi,"disabled",');
-            console.log('✓ "debugUx" disabled to suppress all debug views from sidebar');
+            console.log('[OK] "debugUx" disabled to suppress all debug views from sidebar');
         }
 
         // Auto-trust extension publishers (Bypass modal: "Do you trust the publisher...")
         const trustPublisherPattern = /isPublisherTrusted\((\w+)\)\{const \w+=\1\.publisher\.toLowerCase\(\);return [^}]+}/;
         if (trustPublisherPattern.test(jsContent)) {
             jsContent = jsContent.replace(trustPublisherPattern, 'isPublisherTrusted($1){return!0}');
-            console.log('✓ Extension publishers auto-trusted (bypassed untrusted publisher modal)');
+            console.log('[OK] Extension publishers auto-trusted (bypassed untrusted publisher modal)');
         }
 
         // 1. Patch Welcome Page Subtitle ("Editing evolved" -> Literary tagline)
         const subtitleSnippet = 'x("p.subtitle.description",{},d(22616,null))';
         if (jsContent.includes(subtitleSnippet)) {
             jsContent = jsContent.replace(subtitleSnippet, 'x("p.subtitle.description",{},"Professional Literary Writing & Novel Development Environment")');
-            console.log('✓ Welcome Page subtitle updated to literary tagline');
+            console.log('[OK] Welcome Page subtitle updated to literary tagline');
         }
 
         // 2. Prune developer items from Welcome Start list (Git clone, remote connect) cleanly without syntax corruption
         const devItemsSnippet = ',{id:"topLevelGitClone",title:d(22719,null),description:d(22720,null),when:"config.git.enabled && !git.missing",icon:D.sourceControl,content:{type:"startEntry",command:"command:git.clone"}},{id:"topLevelGitOpen",title:d(22721,null),description:d(22722,null),when:"workspacePlatform == \'webworker\'",icon:D.sourceControl,content:{type:"startEntry",command:"command:remoteHub.openRepository"}},{id:"topLevelRemoteOpen",title:d(22723,null),description:d(22724,null),when:"!isWeb",icon:D.remote,content:{type:"startEntry",command:"command:workbench.action.remote.showMenu"}}]';
         if (jsContent.includes(devItemsSnippet)) {
             jsContent = jsContent.replace(devItemsSnippet, ']');
-            console.log('✓ Developer start items (Git clone, remote connect) removed from Welcome page');
+            console.log('[OK] Developer start items (Git clone, remote connect) removed from Welcome page');
         } else {
-            console.warn('⚠️ devItemsSnippet not found in workbench.desktop.main.js');
+            console.warn('[WARN] devItemsSnippet not found in workbench.desktop.main.js');
         }
 
-        // 3. Patch Recent list to display Novel Title from .novel/project.json and full filesystem path (zero emojis)
+        // 3. Remove VSCodium Announcements from Welcome Page
+        if (jsContent.includes('Pi(a,h.getDomElement(),u.getDomElement())')) {
+            jsContent = jsContent.replace('Pi(a,h.getDomElement(),u.getDomElement())', 'Pi(a,h.getDomElement())');
+            console.log('[OK] VSCodium Announcements removed from Welcome page');
+        }
+        if (jsContent.includes('Pi(a,u.getDomElement())')) {
+            jsContent = jsContent.replace('Pi(a,u.getDomElement())', 'Pi(a)');
+        }
+
+        // 4. Remove VSCodium coding walkthroughs ("Get started with VSCodium")
+        if (jsContent.includes('ZMs=[{id:"Setup"')) {
+            jsContent = jsContent.replace('ZMs=[{id:"Setup"', 'ZMs=[];var _unusedZMs=[{id:"Setup"');
+            console.log('[OK] VSCodium coding walkthroughs removed from Welcome page');
+        }
+
+        // 5. Patch Recent list to display Novel Title from .novel/project.json and full filesystem path (zero emojis)
         const origRecentSnippet = 'const{name:a,parentPath:l}=bIi(n),c=x("li"),h=x("button.button-link");h.innerText=a,h.title=n,h.setAttribute("aria-label",d(22617,null,a,l))';
         const newRecentSnippet = 'const{name:a,parentPath:l}=bIi(n),fullPath=r?.fsPath||r?.path||n,c=x("li"),h=x("button.button-link");h.innerText=a;h.title=fullPath;if(this.fileService&&r){try{const pUri=r.with({path:(r.path.endsWith("/")?r.path:r.path+"/") + ".novel/project.json"});this.fileService.readFile(pUri).then(_res=>{try{const _d=JSON.parse(_res.value.toString());if(_d&&_d.title){h.innerText=_d.title;h.title=_d.title+" ("+fullPath+")";}}catch{}}).catch(()=>{});}catch{}};h.setAttribute("aria-label",d(22617,null,a,l))';
         if (jsContent.includes(origRecentSnippet)) {
             jsContent = jsContent.replace(origRecentSnippet, newRecentSnippet);
-            console.log('✓ Recent list title patched to read from .novel/project.json');
+            console.log('[OK] Recent list title patched to read from .novel/project.json');
         } else {
-            console.warn('⚠️ origRecentSnippet not found in workbench.desktop.main.js');
+            console.warn('[WARN] origRecentSnippet not found in workbench.desktop.main.js');
         }
 
         const pathSnippet = 'u.innerText=l,u.title=n';
         if (jsContent.includes(pathSnippet)) {
             jsContent = jsContent.replace(pathSnippet, 'u.innerText=fullPath,u.title=fullPath');
-            console.log('✓ Recent list path patched to display full actual filesystem path');
+            console.log('[OK] Recent list path patched to display full actual filesystem path');
         } else {
-            console.warn('⚠️ pathSnippet not found in workbench.desktop.main.js');
+            console.warn('[WARN] pathSnippet not found in workbench.desktop.main.js');
         }
 
         fs.writeFileSync(workbenchMainJs, jsContent, 'utf8');
@@ -231,9 +282,9 @@ async function main() {
         // Strictly validate JavaScript syntax before proceeding
         try {
             execSync(`node --check "${workbenchMainJs}"`, { stdio: 'pipe' });
-            console.log('✓ workbench.desktop.main.js syntax validated successfully (0 syntax errors)');
+            console.log('[OK] workbench.desktop.main.js syntax validated successfully (0 syntax errors)');
         } catch (err) {
-            console.error('❌ SYNTAX ERROR in patched workbench.desktop.main.js:', err.stderr?.toString());
+            console.error('[ERROR] SYNTAX ERROR in patched workbench.desktop.main.js:', err.stderr?.toString());
             throw new Error('workbench.desktop.main.js has syntax errors after patching');
         }
     }
@@ -282,6 +333,9 @@ async function main() {
         "telemetry.telemetryLevel": "off",
         "update.mode": "none",
         "workbench.enableExperiments": false,
+        "workbench.welcomePage.extraAnnouncements": false,
+        "workbench.welcomePage.walkthroughs.openOnInstall": false,
+        "workbench.tips.enabled": false,
 
         // Version Control Enabled
         "git.enabled": true,
@@ -290,7 +344,6 @@ async function main() {
         "workbench.layoutControl.enabled": false,
         "debug.showInStatusBar": "never",
         "debug.toolBarLocation": "hidden",
-        "workbench.tips.enabled": false,
         "window.restoreWindows": "none"
     };
 
@@ -299,7 +352,7 @@ async function main() {
         JSON.stringify(defaultSettings, null, 2),
         'utf8'
     );
-    console.log('✓ Novelist settings pre-configured (Warm Parchment, line numbers off, clutter off)');
+    console.log('[OK] Novelist settings pre-configured (Warm Parchment, line numbers off, clutter off)');
 
     // Clean runtime cache / stale locks so new builds never carry ghost sessions
     const userDataDir = path.join(dataDir, 'user-data');
@@ -358,10 +411,10 @@ async function main() {
         );
 
         db.close();
-        console.log('✓ Activity Bar pinned to: Manuscript, Source Control, Explorer, Search (Debug removed)');
-        console.log('✓ Status Bar problems counter hidden (Source Control enabled)');
+        console.log('[OK] Activity Bar pinned to: Manuscript, Source Control, Explorer, Search (Debug removed)');
+        console.log('[OK] Status Bar problems counter hidden (Source Control enabled)');
     } catch (e) {
-        console.warn('⚠️ Could not configure state.vscdb:', e.message);
+        console.warn('[WARN] Could not configure state.vscdb:', e.message);
     }
 
 
@@ -383,6 +436,9 @@ async function main() {
         product.enableTelemetry = false;
         product.sendASARTelemetry = false;
 
+        // Clear built-in debug extensions
+        product.builtInExtensions = [];
+
         // Eliminate "installation appears to be corrupt" checksum warning
         delete product.checksums;
 
@@ -390,7 +446,7 @@ async function main() {
         product.configurationDefaults = defaultSettings;
 
         fs.writeFileSync(productJsonPath, JSON.stringify(product, null, 2), 'utf8');
-        console.log('✓ product.json updated with Novellized Studio branding & checksums disabled');
+        console.log('[OK] product.json updated with Novellized Studio branding, configurationDefaults & checksums disabled');
     }
 
     // 9. Rename Executable & Inject Native PE Resources (Icon & Metadata)
@@ -399,7 +455,7 @@ async function main() {
     const newExe = path.join(OUTPUT_DIR, 'Novellized.exe');
     if (fs.existsSync(oldExe)) {
         fs.renameSync(oldExe, newExe);
-        console.log('✓ Executable renamed to Novellized.exe');
+        console.log('[OK] Executable renamed to Novellized.exe');
     }
 
     if (fs.existsSync(newExe)) {
@@ -420,22 +476,22 @@ async function main() {
                     'file-version': '0.1.0.0',
                     'product-version': '0.1.0.0'
                 });
-                console.log('✓ Injected custom icon.ico and PE metadata into Novellized.exe');
+                console.log('[OK] Injected custom icon.ico and PE metadata into Novellized.exe');
             } catch (err) {
-                console.warn('⚠️ Could not inject native PE resources:', err.message);
+                console.warn('[WARN] Could not inject native PE resources:', err.message);
             }
         }
     }
 
     console.log('\n====================================================');
-    console.log('   🎉 NOVELLIZED STUDIO IDE SUCCESSFULLY CREATED!   ');
+    console.log('   NOVELLIZED STUDIO IDE SUCCESSFULLY CREATED!      ');
     console.log('====================================================');
     console.log(`Executable Path: ${newExe}`);
     console.log('You can run Novellized.exe directly with ZERO telemetry and ZERO dependencies!\n');
 }
 
 main().catch(err => {
-    console.error('\n❌ Packager error:', err);
+    console.error('\n[ERROR] Packager error:', err);
     process.exit(1);
 });
 

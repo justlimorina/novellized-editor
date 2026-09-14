@@ -33,10 +33,8 @@ async function buildInstaller() {
     console.log('   Novellized Studio Release & Installer Generator  ');
     console.log('====================================================\n');
 
-    if (!fs.existsSync(STUDIO_DIR) || !fs.existsSync(path.join(STUDIO_DIR, 'Novellized.exe'))) {
-        console.log('1. Packaged IDE not found in dist-ide. Building IDE first...');
-        execSync('node scripts/package-codium.mjs', { stdio: 'inherit' });
-    }
+    console.log('1. Preparing Novellized Studio application package...');
+    execSync('node scripts/package-codium.mjs', { stdio: 'inherit' });
 
     // 1. Check for Inno Setup compiler
     console.log('1. Checking for Inno Setup Compiler (ISCC.exe)...');

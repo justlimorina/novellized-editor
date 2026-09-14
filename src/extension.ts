@@ -22,6 +22,15 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
     initExtensionGuard(context);
 
+    // Automatically ensure Novellized Warm Parchment theme is active if using standard default themes
+    try {
+        const wbConfig = vscode.workspace.getConfiguration('workbench');
+        const currentTheme = wbConfig.get<string>('colorTheme');
+        if (!currentTheme || currentTheme.startsWith('Default ') || currentTheme.includes('2026') || currentTheme === 'Visual Studio Dark' || currentTheme === 'Visual Studio Light') {
+            wbConfig.update('colorTheme', 'Novellized Warm Parchment', vscode.ConfigurationTarget.Global);
+        }
+    } catch { }
+
     // Initialize Tree Providers for Activity Bar
     const manuscriptProvider = new ManuscriptTreeProvider();
     const statsProvider = new ProjectStatsTreeProvider();
