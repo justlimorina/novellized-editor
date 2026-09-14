@@ -418,7 +418,7 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
 
         const newTitle = await vscode.window.showInputBox({
             title: 'Rename Chapter',
-            prompt: 'Enter chapter title (e.g., Chapter 1: The Awakening / Chương 1: Sự khởi đầu)',
+            prompt: 'Enter chapter title (e.g., Chapter 1: The Awakening)',
             value: currentLabel,
             validateInput: value => (!value || value.trim().length === 0) ? 'Chapter title cannot be empty' : null
         });
@@ -489,7 +489,7 @@ export class ManuscriptTreeProvider implements vscode.TreeDataProvider<Manuscrip
 
         const newTitle = await vscode.window.showInputBox({
             title: 'Rename Scene',
-            prompt: 'Enter scene title (e.g., Scene 1: Arrival / Cảnh 1: Khởi hành)',
+            prompt: 'Enter scene title (e.g., Scene 1: Arrival)',
             value: currentLabel,
             validateInput: value => (!value || value.trim().length === 0) ? 'Scene title cannot be empty' : null
         });

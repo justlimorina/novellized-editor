@@ -137,7 +137,7 @@ async function main() {
     }
 
     // 5. Patch Workbench Menubar (Remove "Run" and "Terminal" menus)
-    console.log('\n4. Patching Workbench to remove programmer menus (Run & Terminal)...');
+    console.log('\n4. Patching Workbench to remove programmer menus and tailor Welcome page...');
     const workbenchMainJs = path.join(
         OUTPUT_DIR,
         'resources',
@@ -148,6 +148,14 @@ async function main() {
         'workbench.desktop.main.js'
     );
     if (fs.existsSync(workbenchMainJs)) {
+        // Always restore pristine workbench.desktop.main.js from cache archive first to prevent corrupting re-runs
+        try {
+            execSync(`tar -xf "${zipPath}" -C "${OUTPUT_DIR}" resources/app/out/vs/workbench/workbench.desktop.main.js`, { stdio: 'pipe' });
+            console.log('✓ Restored pristine workbench.desktop.main.js from archive for patching');
+        } catch (e) {
+            console.warn('• Could not restore pristine workbench file, patching in-place:', e.message);
+        }
+
         let jsContent = fs.readFileSync(workbenchMainJs, 'utf8');
         const termPattern = /fe\.appendMenuItem\(T\.MenubarMainMenu,\{submenu:T\.MenubarTerminalMenu,[^}]+\},order:7\}\),?/;
         const runPattern = /fe\.appendMenuItem\(T\.MenubarMainMenu,\{submenu:T\.MenubarDebugMenu,[^}]+R\(\d+,"Run"\)[^}]+\},order:6[^}]*\}\),?/;
@@ -184,34 +192,47 @@ async function main() {
         // 1. Patch Welcome Page Subtitle ("Editing evolved" -> Literary tagline)
         const subtitleSnippet = 'x("p.subtitle.description",{},d(22616,null))';
         if (jsContent.includes(subtitleSnippet)) {
-            jsContent = jsContent.replace(subtitleSnippet, 'x("p.subtitle.description",{},"Môi trường sáng tác văn học & tiểu thuyết chuyên nghiệp")');
+            jsContent = jsContent.replace(subtitleSnippet, 'x("p.subtitle.description",{},"Professional Literary Writing & Novel Development Environment")');
             console.log('✓ Welcome Page subtitle updated to literary tagline');
         }
 
-        // 2. Prune developer items from Welcome Start list (Git clone, remote connect)
-        const gitClonePattern = /\{id:"topLevelGitClone",[^}]+\},?/;
-        const gitOpenPattern = /\{id:"topLevelGitOpen",[^}]+\},?/;
-        const remoteOpenPattern = /\{id:"topLevelRemoteOpen",[^}]+\},?/;
-        if (gitClonePattern.test(jsContent)) {
-            jsContent = jsContent.replace(gitClonePattern, '').replace(gitOpenPattern, '').replace(remoteOpenPattern, '');
+        // 2. Prune developer items from Welcome Start list (Git clone, remote connect) cleanly without syntax corruption
+        const devItemsSnippet = ',{id:"topLevelGitClone",title:d(22719,null),description:d(22720,null),when:"config.git.enabled && !git.missing",icon:D.sourceControl,content:{type:"startEntry",command:"command:git.clone"}},{id:"topLevelGitOpen",title:d(22721,null),description:d(22722,null),when:"workspacePlatform == \'webworker\'",icon:D.sourceControl,content:{type:"startEntry",command:"command:remoteHub.openRepository"}},{id:"topLevelRemoteOpen",title:d(22723,null),description:d(22724,null),when:"!isWeb",icon:D.remote,content:{type:"startEntry",command:"command:workbench.action.remote.showMenu"}}]';
+        if (jsContent.includes(devItemsSnippet)) {
+            jsContent = jsContent.replace(devItemsSnippet, ']');
             console.log('✓ Developer start items (Git clone, remote connect) removed from Welcome page');
+        } else {
+            console.warn('⚠️ devItemsSnippet not found in workbench.desktop.main.js');
         }
 
-        // 3. Patch Recent list to display Novel Title from .novel/project.json and full filesystem path
-        const recentSnippet = 'const{name:a,parentPath:l}=bIi(n),c=x("li"),h=x("button.button-link");h.innerText=a,h.title=n';
-        if (jsContent.includes(recentSnippet)) {
-            const replacement = 'const{name:a,parentPath:l}=bIi(n);const fullPath=r?.fsPath||r?.path||n;const c=x("li"),h=x("button.button-link");h.innerText=a;h.title=fullPath;if(this.fileService&&r){try{const pUri=r.with({path:(r.path.endsWith("/")?r.path:r.path+"/") + ".novel/project.json"});this.fileService.readFile(pUri).then(_res=>{try{const _d=JSON.parse(new TextDecoder().decode(_res.value.buffer));if(_d&&_d.title){h.innerText=_d.title;h.title=_d.title+" ("+fullPath+")";}}catch{}}).catch(()=>{});}catch{}}';
-            jsContent = jsContent.replace(recentSnippet, replacement);
+        // 3. Patch Recent list to display Novel Title from .novel/project.json and full filesystem path (zero emojis)
+        const origRecentSnippet = 'const{name:a,parentPath:l}=bIi(n),c=x("li"),h=x("button.button-link");h.innerText=a,h.title=n,h.setAttribute("aria-label",d(22617,null,a,l))';
+        const newRecentSnippet = 'const{name:a,parentPath:l}=bIi(n),fullPath=r?.fsPath||r?.path||n,c=x("li"),h=x("button.button-link");h.innerText=a;h.title=fullPath;if(this.fileService&&r){try{const pUri=r.with({path:(r.path.endsWith("/")?r.path:r.path+"/") + ".novel/project.json"});this.fileService.readFile(pUri).then(_res=>{try{const _d=JSON.parse(_res.value.toString());if(_d&&_d.title){h.innerText=_d.title;h.title=_d.title+" ("+fullPath+")";}}catch{}}).catch(()=>{});}catch{}};h.setAttribute("aria-label",d(22617,null,a,l))';
+        if (jsContent.includes(origRecentSnippet)) {
+            jsContent = jsContent.replace(origRecentSnippet, newRecentSnippet);
             console.log('✓ Recent list title patched to read from .novel/project.json');
+        } else {
+            console.warn('⚠️ origRecentSnippet not found in workbench.desktop.main.js');
         }
 
         const pathSnippet = 'u.innerText=l,u.title=n';
         if (jsContent.includes(pathSnippet)) {
             jsContent = jsContent.replace(pathSnippet, 'u.innerText=fullPath,u.title=fullPath');
             console.log('✓ Recent list path patched to display full actual filesystem path');
+        } else {
+            console.warn('⚠️ pathSnippet not found in workbench.desktop.main.js');
         }
 
         fs.writeFileSync(workbenchMainJs, jsContent, 'utf8');
+
+        // Strictly validate JavaScript syntax before proceeding
+        try {
+            execSync(`node --check "${workbenchMainJs}"`, { stdio: 'pipe' });
+            console.log('✓ workbench.desktop.main.js syntax validated successfully (0 syntax errors)');
+        } catch (err) {
+            console.error('❌ SYNTAX ERROR in patched workbench.desktop.main.js:', err.stderr?.toString());
+            throw new Error('workbench.desktop.main.js has syntax errors after patching');
+        }
     }
 
     // 6. Set up Portable Mode (`data/` folder)

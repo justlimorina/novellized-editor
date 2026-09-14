@@ -345,10 +345,10 @@ h1 + p, h2 + p, h3 + p, .scene-divider + p, hr + p, blockquote + p {
 <body class="title-page">
   <div class="title-wrap">
     <h1 class="book-title">${escapeXml(manuscript.metadata.title)}</h1>
-    <p class="book-author">bởi ${escapeXml(manuscript.metadata.author)}</p>
+    <p class="book-author">by ${escapeXml(manuscript.metadata.author)}</p>
     <div class="divider">✦ ✦ ✦</div>
-    <p class="publisher-meta">Tác phẩm gồm ${manuscript.chapters.length} chương · ${manuscript.totalWords.toLocaleString()} từ</p>
-    <p class="publisher-meta">Biên soạn bởi Novellized Prose Editor</p>
+    <p class="publisher-meta">${manuscript.chapters.length} Chapters · ${manuscript.totalWords.toLocaleString()} Words</p>
+    <p class="publisher-meta">Compiled with Novellized Prose Editor</p>
   </div>
 </body>
 </html>`;
@@ -365,11 +365,11 @@ h1 + p, h2 + p, h3 + p, .scene-divider + p, hr + p, blockquote + p {
             '<itemref idref="title"/>'
         ];
         const navListItems: string[] = [
-            '<li><a href="title.xhtml">Trang Tiêu Đề</a></li>'
+            '<li><a href="title.xhtml">Title Page</a></li>'
         ];
         const ncxNavPoints: string[] = [
             `<navPoint id="navpoint-1" playOrder="1">
-        <navLabel><text>Trang Tiêu Đề</text></navLabel>
+        <navLabel><text>Title Page</text></navLabel>
         <content src="title.xhtml"/>
       </navPoint>`
         ];
@@ -407,12 +407,12 @@ h1 + p, h2 + p, h3 + p, .scene-divider + p, hr + p, blockquote + p {
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="${manuscript.metadata.language}" xml:lang="${manuscript.metadata.language}">
 <head>
-  <title>Mục Lục</title>
+  <title>Table of Contents</title>
   <link rel="stylesheet" type="text/css" href="style.css"/>
 </head>
 <body>
   <nav epub:type="toc" id="toc">
-    <h1>Mục Lục</h1>
+    <h1>Table of Contents</h1>
     <ol>
       ${navListItems.join('\n      ')}
     </ol>
@@ -534,7 +534,7 @@ export function generatePrintableBookHtml(manuscript: CompiledManuscript): strin
 <html lang="${manuscript.metadata.language}">
 <head>
   <meta charset="utf-8">
-  <title>${escapeXml(manuscript.metadata.title)} - Bản In / PDF</title>
+  <title>${escapeXml(manuscript.metadata.title)} - Print / PDF</title>
   <style>
     @page {
       size: A5; /* Standard trade paperback / novel size (148 x 210 mm) */
@@ -716,18 +716,18 @@ export function generatePrintableBookHtml(manuscript: CompiledManuscript): strin
   <div class="print-bar no-print">
     <div><strong>Novellized Book Preview:</strong> ${escapeXml(manuscript.metadata.title)} (${manuscript.chapters.length} chapters · ${manuscript.totalWords.toLocaleString()} words)</div>
     <button class="print-btn" onclick="window.print()">
-      In / Luu file PDF (Print to PDF)
+      Print / Save as PDF
     </button>
   </div>
 
   <div class="book-container">
     <div class="title-page-wrapper">
       <h1>${escapeXml(manuscript.metadata.title)}</h1>
-      <div class="author">bởi ${escapeXml(manuscript.metadata.author)}</div>
+      <div class="author">by ${escapeXml(manuscript.metadata.author)}</div>
       <div class="divider">✦ ✦ ✦</div>
       <div class="meta">
-        ${manuscript.chapters.length} Chương · ${manuscript.totalWords.toLocaleString()} Từ<br>
-        Tạo bằng Novellized Prose Editor
+        ${manuscript.chapters.length} Chapters · ${manuscript.totalWords.toLocaleString()} Words<br>
+        Created with Novellized Prose Editor
       </div>
     </div>
 
@@ -811,7 +811,7 @@ export async function exportToPdf(workspaceUri?: vscode.Uri): Promise<void> {
         // Fallback when no headless browser is detected: Open printable book view directly
         openPrintableBookView(rootUri);
         vscode.window.showInformationMessage(
-            'Print preview opened! Press "In / Lưu file PDF" (Ctrl+P) and choose "Save as PDF" to generate your book.',
+            'Print preview opened! Click "Print / Save as PDF" (or press Ctrl+P) to save your book as PDF.',
             'OK'
         );
     }

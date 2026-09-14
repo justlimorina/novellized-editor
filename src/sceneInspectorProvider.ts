@@ -332,31 +332,31 @@ export class SceneInspectorProvider implements vscode.WebviewViewProvider {
         <div class="form-group">
             <label for="input-status">Scene Status</label>
             <select id="input-status">
-                <option value="draft">Draft (Bản thô)</option>
-                <option value="in_progress">In Progress (Đang viết)</option>
-                <option value="revised">Revised (Đã trau chuốt)</option>
-                <option value="done">Done (Hoàn thành)</option>
+                <option value="draft">Draft</option>
+                <option value="in_progress">In Progress</option>
+                <option value="revised">Revised</option>
+                <option value="done">Done</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label for="input-pov">POV Character (Góc nhìn)</label>
+            <label for="input-pov">POV Character</label>
             <input type="text" id="input-pov" list="characters-list" placeholder="e.g., Protagonist">
             <datalist id="characters-list"></datalist>
         </div>
 
         <div class="form-group">
-            <label for="input-synopsis">Scene Synopsis (Ý đồ cốt truyện)</label>
+            <label for="input-synopsis">Scene Synopsis</label>
             <textarea id="input-synopsis" placeholder="Briefly summarize what happens and what conflicts unfold..."></textarea>
         </div>
 
         <div class="form-group">
-            <label for="input-notes">Author Backstage Notes (Nháp riêng tư)</label>
+            <label for="input-notes">Author Backstage Notes</label>
             <textarea id="input-notes" placeholder="Reminders, sensory motifs, or hidden twists (will not be printed)..."></textarea>
         </div>
 
         <div class="form-group" style="margin-top: 14px;">
-            <label>Scene Snapshots (Bản lưu an toàn)</label>
+            <label>Scene Snapshots</label>
             <button id="btn-snapshot" class="btn-action btn-primary">Take Snapshot</button>
             <div id="snapshot-list" class="snapshot-list"></div>
         </div>

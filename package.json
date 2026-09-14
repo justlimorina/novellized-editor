@@ -52,7 +52,7 @@
       "scm": [
         {
           "id": "novellized.snapshotHistoryView",
-          "name": "Checkpoints & Snapshots (Lịch Sử Bản Lưu)"
+          "name": "Checkpoints & Snapshots"
         }
       ]
     },

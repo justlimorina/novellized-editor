@@ -76,7 +76,7 @@ export class WriterStatusBarManager implements vscode.Disposable {
 
             // Update Goal Item
             this.goalItem.text = `$(target) ${totalWords.toLocaleString()} / ${targetWordCount.toLocaleString()} w (${percent}%)`;
-            this.goalItem.tooltip = `Tác phẩm: ${title}\nTiến độ: ${totalWords.toLocaleString()} / ${targetWordCount.toLocaleString()} từ (${percent}%)\nBấm vào để thay đổi mục tiêu số từ.`;
+            this.goalItem.tooltip = `Novel: ${title}\nProgress: ${totalWords.toLocaleString()} / ${targetWordCount.toLocaleString()} words (${percent}%)\nClick to edit word count goal.`;
             this.goalItem.show();
 
             // Update Reading Time Item
@@ -86,7 +86,7 @@ export class WriterStatusBarManager implements vscode.Disposable {
                 ? `~${readingMinutes} min`
                 : `~${readingHours}h (${readingMinutes}m)`;
             this.readingTimeItem.text = `$(watch) ${readingTimeStr}`;
-            this.readingTimeItem.tooltip = `Thời gian đọc ước tính (~200 từ/phút): ${readingTimeStr}`;
+            this.readingTimeItem.tooltip = `Estimated reading time (~200 words/min): ${readingTimeStr}`;
             this.readingTimeItem.show();
 
             // Active Chapter/Scene detection

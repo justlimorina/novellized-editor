@@ -72,7 +72,7 @@ export class SnapshotHistoryTreeProvider implements vscode.TreeDataProvider<Snap
             // Root level: all checkpoints
             const snapshots = await SnapshotManager.listAllSnapshots(rootUri);
             if (snapshots.length === 0) {
-                const emptyItem = new vscode.TreeItem('Chưa có bản lưu (snapshot) nào. Nhập ghi chú ở trên & bấm Enter để lưu!');
+                const emptyItem = new vscode.TreeItem('No checkpoints recorded yet. Enter a note above and press Enter to save.');
                 emptyItem.iconPath = new vscode.ThemeIcon('info');
                 return [emptyItem as any];
             }
