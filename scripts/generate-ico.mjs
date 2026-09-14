@@ -141,12 +141,12 @@ export function generateAllIcons(resourcesDir = path.resolve('resources')) {
     fs.writeFileSync(pngPath, png256);
     console.log(`[OK] Created PNG preview: ${pngPath}`);
 
-    // 3. Update resources/icon.svg
-    const svgPath = path.join(resourcesDir, 'icon.svg');
-    fs.writeFileSync(svgPath, NOVELLIZED_SVG, 'utf8');
-    console.log(`[OK] Created SVG master: ${svgPath}`);
+    // 3. Write desktop app master SVG to resources/app-icon.svg
+    const appSvgPath = path.join(resourcesDir, 'app-icon.svg');
+    fs.writeFileSync(appSvgPath, NOVELLIZED_SVG, 'utf8');
+    console.log(`[OK] Created Desktop App SVG master: ${appSvgPath}`);
 
-    return { icoPath, pngPath, svgPath };
+    return { icoPath, pngPath, appSvgPath };
 }
 
 // Run if called directly
