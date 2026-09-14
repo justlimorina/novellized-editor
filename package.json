@@ -450,7 +450,9 @@
     "compile": "tsc -noEmit",
     "watch": "node esbuild.config.mjs --watch",
     "build": "node esbuild.config.mjs --production",
-    "package:ide": "node scripts/package-codium.mjs"
+    "package:ide": "node scripts/package-codium.mjs",
+    "package:installer": "node scripts/build-installer.mjs",
+    "package:all": "node scripts/package-codium.mjs && node scripts/build-installer.mjs"
   },
   "dependencies": {
     "@tiptap/core": "^2.11.5",
@@ -464,10 +466,13 @@
     "tiptap-markdown": "^0.8.10"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/jszip": "^3.4.0",
     "@types/node": "^20.11.24",
     "@types/vscode": "^1.80.0",
     "esbuild": "^0.25.0",
+    "pngjs": "^7.0.0",
+    "rcedit": "^5.0.2",
     "typescript": "^5.3.3"
   }
 }

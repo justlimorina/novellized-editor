@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { DatabaseSync } from 'node:sqlite';
+import { rcedit } from 'rcedit';
+import { generateAllIcons } from './generate-ico.mjs';
 
 
 const ROOT_DIR = process.cwd();
@@ -71,8 +73,9 @@ async function main() {
     await ensureDir(CACHE_DIR);
     await ensureDir(path.dirname(OUTPUT_DIR));
 
-    // 1. Build Extension First
-    console.log('1. Building Novellized Extension for production...');
+    // 1. Generate Icons and Build Extension First
+    generateAllIcons();
+    console.log('\n1. Building Novellized Extension for production...');
     execSync('npm.cmd run build', { stdio: 'inherit' });
 
     // 2. Fetch VSCodium
@@ -246,12 +249,17 @@ async function main() {
     ensureDir(userSettingsDir);
     ensureDir(globalStorageDir);
 
-    // Copy extension files
-    console.log('Installing Novellized Prose Editor into portable extensions...');
-    fs.copyFileSync(path.join(ROOT_DIR, 'package.json'), path.join(extensionsDir, 'package.json'));
-    copyDirSync(path.join(ROOT_DIR, 'dist'), path.join(extensionsDir, 'dist'));
-    copyDirSync(path.join(ROOT_DIR, 'themes'), path.join(extensionsDir, 'themes'));
-    copyDirSync(path.join(ROOT_DIR, 'resources'), path.join(extensionsDir, 'resources'));
+    // Copy extension files to both portable data/extensions AND built-in resources/app/extensions
+    console.log('Installing Novellized Prose Editor into extensions...');
+    const builtInAppExtDir = path.join(OUTPUT_DIR, 'resources', 'app', 'extensions', 'novellized-editor');
+    ensureDir(builtInAppExtDir);
+
+    for (const targetExtDir of [extensionsDir, builtInAppExtDir]) {
+        fs.copyFileSync(path.join(ROOT_DIR, 'package.json'), path.join(targetExtDir, 'package.json'));
+        copyDirSync(path.join(ROOT_DIR, 'dist'), path.join(targetExtDir, 'dist'));
+        copyDirSync(path.join(ROOT_DIR, 'themes'), path.join(targetExtDir, 'themes'));
+        copyDirSync(path.join(ROOT_DIR, 'resources'), path.join(targetExtDir, 'resources'));
+    }
 
     // Pre-configure settings for novelists
     const defaultSettings = {
@@ -378,16 +386,45 @@ async function main() {
         // Eliminate "installation appears to be corrupt" checksum warning
         delete product.checksums;
 
+        // Apply novelist configuration defaults for all profiles & installed users
+        product.configurationDefaults = defaultSettings;
+
         fs.writeFileSync(productJsonPath, JSON.stringify(product, null, 2), 'utf8');
         console.log('✓ product.json updated with Novellized Studio branding & checksums disabled');
     }
 
-    // 9. Rename Executable
+    // 9. Rename Executable & Inject Native PE Resources (Icon & Metadata)
+    console.log('\n8. Finalizing Novellized executable & native PE resources...');
     const oldExe = path.join(OUTPUT_DIR, 'VSCodium.exe');
     const newExe = path.join(OUTPUT_DIR, 'Novellized.exe');
     if (fs.existsSync(oldExe)) {
         fs.renameSync(oldExe, newExe);
         console.log('✓ Executable renamed to Novellized.exe');
+    }
+
+    if (fs.existsSync(newExe)) {
+        const icoPath = path.join(ROOT_DIR, 'resources', 'icon.ico');
+        if (fs.existsSync(icoPath)) {
+            console.log('Injecting native icon.ico and PE metadata into Novellized.exe...');
+            try {
+                await rcedit(newExe, {
+                    icon: icoPath,
+                    'version-string': {
+                        FileDescription: 'Novellized Studio',
+                        ProductName: 'Novellized Studio',
+                        CompanyName: 'Novellized',
+                        LegalCopyright: 'Copyright (C) 2026 Novellized',
+                        OriginalFilename: 'Novellized.exe',
+                        InternalName: 'Novellized'
+                    },
+                    'file-version': '0.1.0.0',
+                    'product-version': '0.1.0.0'
+                });
+                console.log('✓ Injected custom icon.ico and PE metadata into Novellized.exe');
+            } catch (err) {
+                console.warn('⚠️ Could not inject native PE resources:', err.message);
+            }
+        }
     }
 
     console.log('\n====================================================');
