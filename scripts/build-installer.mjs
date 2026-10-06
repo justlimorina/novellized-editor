@@ -6,7 +6,9 @@ const ROOT_DIR = process.cwd();
 const DIST_IDE = path.join(ROOT_DIR, 'dist-ide');
 const STUDIO_DIR = path.join(DIST_IDE, 'Novellized-Studio');
 const ISS_FILE = path.join(ROOT_DIR, 'scripts', 'novellized.iss');
-const VERSION = '0.1.0';
+
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'));
+const VERSION = (process.env.RELEASE_VERSION || pkg.version).replace(/^v/i, '').trim();
 
 function findInnoCompiler() {
     // 1. Check PATH
@@ -45,7 +47,7 @@ async function buildInstaller() {
             console.log(`[OK] Found Inno Setup compiler: ${isccPath}`);
             console.log('Compiling Windows Setup installer (Novellized-Studio-Setup-x64.exe)...');
             try {
-                execSync(`"${isccPath}" "${ISS_FILE}"`, { stdio: 'inherit' });
+                execSync(`"${isccPath}" /DMyAppVersion="${VERSION}" "${ISS_FILE}"`, { stdio: 'inherit' });
                 console.log(`[OK] Installer built successfully in: ${DIST_IDE}`);
             } catch (err) {
                 console.error('[ERROR] Failed to compile Inno Setup script:', err.message);

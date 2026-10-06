@@ -2,7 +2,7 @@
   "name": "novellized-editor",
   "displayName": "Novellized Prose Editor",
   "description": "WYSIWYG Live Markdown Editor for Authors and Novelists in VS Code / VSCodium",
-  "version": "0.1.0",
+  "version": "0.1.1-alpha",
   "license": "MIT",
   "publisher": "novellized",
   "engines": {

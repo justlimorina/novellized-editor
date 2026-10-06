@@ -6,7 +6,9 @@ const ROOT_DIR = process.cwd();
 const DIST_IDE = path.join(ROOT_DIR, 'dist-ide');
 const STUDIO_DIR = path.join(DIST_IDE, 'Novellized-Studio');
 const STAGING_DIR = path.join(DIST_IDE, 'deb-staging');
-const VERSION = '0.1.0';
+
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'));
+const VERSION = (process.env.RELEASE_VERSION || pkg.version).replace(/^v/i, '').trim();
 
 async function ensureDir(dir) {
     if (!fs.existsSync(dir)) {

@@ -8,6 +8,8 @@ import { generateAllIcons } from './generate-ico.mjs';
 const ROOT_DIR = process.cwd();
 const CACHE_DIR = path.join(ROOT_DIR, '.cache');
 const OUTPUT_DIR = path.join(ROOT_DIR, 'dist-ide', 'Novellized-Studio');
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'));
+const VERSION = (process.env.RELEASE_VERSION || pkg.version).replace(/^v/i, '').trim();
 
 
 async function ensureDir(dir) {
@@ -488,18 +490,24 @@ async function main() {
                 console.log('Injecting native icon.ico and PE metadata into Novellized.exe...');
                 try {
                     const { rcedit } = await import('rcedit');
+                    const semverParts = VERSION.split('-')[0].split('.').map(x => parseInt(x, 10) || 0);
+                    while (semverParts.length < 4) semverParts.push(0);
+                    const winQuadVersion = semverParts.slice(0, 4).join('.');
+
                     await rcedit(newExe, {
                         icon: icoPath,
                         'version-string': {
                             FileDescription: 'Novellized Studio',
                             ProductName: 'Novellized Studio',
+                            ProductVersion: VERSION,
+                            FileVersion: VERSION,
                             CompanyName: 'Novellized',
                             LegalCopyright: 'Copyright (C) 2026 Novellized',
                             OriginalFilename: 'Novellized.exe',
                             InternalName: 'Novellized'
                         },
-                        'file-version': '0.1.0.0',
-                        'product-version': '0.1.0.0'
+                        'file-version': winQuadVersion,
+                        'product-version': winQuadVersion
                     });
                     console.log('[OK] Injected custom icon.ico and PE metadata into Novellized.exe');
                 } catch (err) {

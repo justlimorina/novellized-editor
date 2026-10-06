@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 
 const GITHUB_REPO = 'novellized/novellized-editor';
-const RELEASES_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+const RELEASES_API = `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=5`;
 const LAST_CHECK_KEY = 'novellized.lastUpdateCheckTime';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -22,24 +22,67 @@ interface GitHubRelease {
     assets: GitHubReleaseAsset[];
 }
 
+interface ParsedSemver {
+    major: number;
+    minor: number;
+    patch: number;
+    prerelease: (string | number)[];
+}
+
+function parseSemver(v: string): ParsedSemver {
+    const clean = v.replace(/^v/i, '').trim();
+    const [main, ...preParts] = clean.split('-');
+    const [major = 0, minor = 0, patch = 0] = main.split('.').map(x => parseInt(x, 10) || 0);
+    const preRaw = preParts.join('-');
+    const prerelease = preRaw ? preRaw.split('.').map(part => {
+        const num = parseInt(part, 10);
+        return isNaN(num) ? part : num;
+    }) : [];
+
+    return { major, minor, patch, prerelease };
+}
+
 /**
- * Compare two semver version strings (e.g. "0.1.0" vs "v0.1.1")
+ * Compare two semver version strings (e.g. "0.1.0" vs "v0.1.1-alpha")
+ * Follows SemVer 2.0 precedence.
  * Returns true if latest is strictly greater than current
  */
 export function isNewerVersion(current: string, latest: string): boolean {
-    const cleanCurrent = current.replace(/^v/i, '').trim();
-    const cleanLatest = latest.replace(/^v/i, '').trim();
+    const a = parseSemver(current);
+    const b = parseSemver(latest);
 
-    const pCurrent = cleanCurrent.split('.').map(x => parseInt(x, 10) || 0);
-    const pLatest = cleanLatest.split('.').map(x => parseInt(x, 10) || 0);
+    if (b.major !== a.major) return b.major > a.major;
+    if (b.minor !== a.minor) return b.minor > a.minor;
+    if (b.patch !== a.patch) return b.patch > a.patch;
 
-    const len = Math.max(pCurrent.length, pLatest.length);
-    for (let i = 0; i < len; i++) {
-        const c = pCurrent[i] || 0;
-        const l = pLatest[i] || 0;
-        if (l > c) return true;
-        if (l < c) return false;
+    // Normal version has higher precedence than a pre-release version
+    if (a.prerelease.length > 0 && b.prerelease.length === 0) return true;
+    if (a.prerelease.length === 0 && b.prerelease.length > 0) return false;
+    if (a.prerelease.length === 0 && b.prerelease.length === 0) return false;
+
+    // Both have pre-release identifiers: compare each identifier
+    const maxLen = Math.max(a.prerelease.length, b.prerelease.length);
+    for (let i = 0; i < maxLen; i++) {
+        const idA = a.prerelease[i];
+        const idB = b.prerelease[i];
+
+        if (idA === undefined) return true;
+        if (idB === undefined) return false;
+
+        const isNumA = typeof idA === 'number';
+        const isNumB = typeof idB === 'number';
+
+        if (isNumA && isNumB) {
+            if (idB !== idA) return idB > idA;
+        } else if (isNumA && !isNumB) {
+            return true;
+        } else if (!isNumA && isNumB) {
+            return false;
+        } else {
+            if (idB !== idA) return (idB as string) > (idA as string);
+        }
     }
+
     return false;
 }
 
@@ -55,7 +98,10 @@ async function fetchLatestRelease(): Promise<GitHubRelease | null> {
             if (res.status === 404) return null; // No releases yet
             throw new Error(`GitHub API returned ${res.status} ${res.statusText}`);
         }
-        return await res.json() as GitHubRelease;
+        const data = await res.json();
+        if (!Array.isArray(data) || data.length === 0) return null;
+        const publishedRelease = data.find((r: any) => !r.draft);
+        return (publishedRelease as GitHubRelease) || null;
     } catch (err: any) {
         throw new Error(`Could not connect to update server: ${err.message}`);
     }

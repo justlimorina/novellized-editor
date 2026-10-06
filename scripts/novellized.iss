@@ -2,7 +2,9 @@
 ; Documentation: https://jrsoftware.org/ishelp/
 
 #define MyAppName "Novellized Studio"
-#define MyAppVersion "0.1.0"
+#ifndef MyAppVersion
+#define MyAppVersion "0.1.1-alpha"
+#endif
 #define MyAppPublisher "Novellized"
 #define MyAppURL "https://novellized.github.io"
 #define MyAppExeName "Novellized.exe"

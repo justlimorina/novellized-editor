@@ -31,6 +31,13 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Sync Version from Git Tag
+        run: |
+          TAG="${{ github.event.inputs.tag_name || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+
       - name: Build & Package VSIX
         run: npm run package:vsix
 
@@ -55,6 +62,13 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+
+      - name: Sync Version from Git Tag
+        run: |
+          TAG="${{ github.event.inputs.tag_name || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
 
       - name: Build Standalone Studio & Linux Packages
         run: |
@@ -87,6 +101,14 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+
+      - name: Sync Version from Git Tag
+        shell: bash
+        run: |
+          TAG="${{ github.event.inputs.tag_name || github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "RELEASE_VERSION=$VERSION" >> $GITHUB_ENV
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
 
       - name: Build Standalone Studio & Windows Release
         run: npm run package:installer
@@ -127,6 +149,6 @@ jobs:
             release-assets/*.zip
             release-assets/*.exe
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.event.inputs.tag_name || github.ref_name, 'alpha') || contains(github.event.inputs.tag_name || github.ref_name, 'beta') || contains(github.event.inputs.tag_name || github.ref_name, 'rc') }}
           generate_release_notes: true
 
