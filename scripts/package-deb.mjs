@@ -141,8 +141,63 @@ Description: Novellized Studio - Novelist IDE
 `;
     fs.writeFileSync(path.join(debianMetaDir, 'control'), controlContent, { encoding: 'utf8', mode: 0o644 });
 
-    // 9. Build .deb package via dpkg-deb
-    console.log(`5. Building ${debFileName} via dpkg-deb ...`);
+    // 9. DEBIAN/postinst (Auto-configure APT repository on install)
+    console.log('5. Generating DEBIAN/postinst script (Auto-register APT repo on install)...');
+    const postinstContent = `#!/bin/sh
+set -e
+
+# Update desktop and icon databases
+if which update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database -q /usr/share/applications || true
+fi
+if which gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -q /usr/share/icons/hicolor || true
+fi
+
+# Automatically register Novellized APT repository for background system updates
+APT_LIST="/etc/apt/sources.list.d/novellized.list"
+APT_LINE="deb [trusted=yes] https://novellized.github.io/apt stable main"
+
+if [ ! -f "$APT_LIST" ]; then
+    echo "$APT_LINE" > "$APT_LIST"
+    chmod 0644 "$APT_LIST"
+elif ! grep -q "novellized.github.io/apt" "$APT_LIST"; then
+    echo "$APT_LINE" >> "$APT_LIST"
+    chmod 0644 "$APT_LIST"
+fi
+
+exit 0
+`;
+    const postinstPath = path.join(debianMetaDir, 'postinst');
+    fs.writeFileSync(postinstPath, postinstContent, { encoding: 'utf8', mode: 0o755 });
+    fs.chmodSync(postinstPath, 0o755);
+
+    // 10. DEBIAN/postrm (Clean up APT repository on uninstall)
+    console.log('6. Generating DEBIAN/postrm script (Clean up APT repo on uninstall)...');
+    const postrmContent = `#!/bin/sh
+set -e
+
+# Update desktop and icon databases
+if which update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database -q /usr/share/applications || true
+fi
+if which gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -q /usr/share/icons/hicolor || true
+fi
+
+# Remove APT repository configuration when package is removed or purged
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    rm -f /etc/apt/sources.list.d/novellized.list
+fi
+
+exit 0
+`;
+    const postrmPath = path.join(debianMetaDir, 'postrm');
+    fs.writeFileSync(postrmPath, postrmContent, { encoding: 'utf8', mode: 0o755 });
+    fs.chmodSync(postrmPath, 0o755);
+
+    // 11. Build .deb package via dpkg-deb
+    console.log(`7. Building ${debFileName} via dpkg-deb ...`);
     try {
         execSync(`dpkg-deb --build --root-owner-group "${STAGING_DIR}" "${debDest}"`, { stdio: 'inherit' });
         const stats = fs.statSync(debDest);
