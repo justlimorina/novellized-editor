@@ -4,7 +4,7 @@
 #define MyAppName "Novellized Studio"
 #define MyAppVersion "0.1.0"
 #define MyAppPublisher "Novellized"
-#define MyAppURL "https://github.com/justlimorina/novellized-editor"
+#define MyAppURL "https://novellized.github.io"
 #define MyAppExeName "Novellized.exe"
 
 [Setup]
@@ -22,6 +22,8 @@ AllowNoIcons=yes
 ; Allow installing either for Current User (no UAC prompt) or All Users (elevated)
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
+CloseApplications=yes
+RestartApplications=no
 OutputBaseFilename=Novellized-Studio-Setup-{#MyAppVersion}-x64
 OutputDir=..\dist-ide
 SetupIconFile=..\resources\icon.ico
