@@ -106,6 +106,10 @@ async function buildInstaller() {
     if (fs.existsSync(archiveDest)) {
         console.log(`- Portable Archive: ${archiveDest}`);
     }
+    const debFiles = fs.readdirSync(DIST_IDE).filter(f => f.endsWith('.deb'));
+    for (const deb of debFiles) {
+        console.log(`- Debian Package: ${path.join(DIST_IDE, deb)}`);
+    }
     const setupExe = path.join(DIST_IDE, `Novellized-Studio-Setup-${VERSION}-x64.exe`);
     if (fs.existsSync(setupExe)) {
         console.log(`- Windows Setup: ${setupExe}`);

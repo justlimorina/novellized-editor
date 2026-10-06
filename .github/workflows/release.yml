@@ -1,0 +1,132 @@
+name: Release Novellized
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag Name (e.g. v0.1.0)'
+        required: false
+        default: 'v0.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-vsix:
+    name: Package VSIX (Universal Extension)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build & Package VSIX
+        run: npm run package:vsix
+
+      - name: Upload VSIX Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: novellized-vsix
+          path: '*.vsix'
+
+  build-linux:
+    name: Package Linux (.deb & Portable tar.gz)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Standalone Studio & Linux Packages
+        run: |
+          npm run package:deb
+          npm run package:installer
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: novellized-linux
+          path: |
+            dist-ide/*.deb
+            dist-ide/*.tar.gz
+
+  build-windows:
+    name: Package Windows (Setup .exe & Portable .zip)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Inno Setup
+        run: choco install innosetup --yes
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Standalone Studio & Windows Release
+        run: npm run package:installer
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: novellized-windows
+          path: |
+            dist-ide/*.exe
+            dist-ide/*.zip
+
+  publish-release:
+    name: Publish Release Assets
+    needs: [build-vsix, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Inspect Release Assets
+        run: ls -lh release-assets/
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
+          files: |
+            release-assets/*.vsix
+            release-assets/*.deb
+            release-assets/*.tar.gz
+            release-assets/*.zip
+            release-assets/*.exe
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+

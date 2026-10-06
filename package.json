@@ -453,7 +453,9 @@
     "build": "node esbuild.config.mjs --production",
     "package:vsix": "vsce package --no-git-tag-version --allow-missing-repository",
     "package:ide": "node scripts/package-codium.mjs",
+    "package:deb": "node scripts/package-deb.mjs",
     "package:installer": "node scripts/build-installer.mjs",
+    "package:linux": "node scripts/package-deb.mjs && node scripts/build-installer.mjs",
     "package:all": "node scripts/package-codium.mjs && node scripts/build-installer.mjs"
   },
   "dependencies": {
