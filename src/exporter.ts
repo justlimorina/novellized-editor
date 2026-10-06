@@ -270,7 +270,7 @@ export async function exportToEpub(workspaceUri?: vscode.Uri): Promise<void> {
         // 3. OEBPS/style.css
         const cssContent = `
 body {
-  font-family: Georgia, "Times New Roman", "Palatino Linotype", serif;
+  font-family: 'Noto Serif', 'Liberation Serif', Georgia, "Times New Roman", "Palatino Linotype", serif;
   line-height: 1.75;
   color: #1a1a1a;
   margin: 5% 8%;
@@ -576,7 +576,7 @@ export function generatePrintableBookHtml(manuscript: CompiledManuscript): strin
     }
 
     body {
-      font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
+      font-family: 'Noto Serif', 'Liberation Serif', 'DejaVu Serif', "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
       font-size: 11pt;
       line-height: 1.7;
       color: #1a1a1a;

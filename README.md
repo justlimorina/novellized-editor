@@ -45,21 +45,33 @@ WYSIWYG Live Markdown Editor built specifically for authors, novelists, and crea
 
 ### 1. Install Dependencies
 ```bash
-npm.cmd install
+npm install
 ```
 
 ### 2. Build Extension
 ```bash
-npm.cmd run build
+npm run build
 ```
 
 Or run watch mode:
 ```bash
-npm.cmd run watch
+npm run watch
 ```
 
-### 3. Debug with VS Code / VSCodium
+### 3. Package Extension (.vsix)
+```bash
+npm run package:vsix
+code --install-extension novellized-editor-0.1.0.vsix
+```
+
+### 4. Package Standalone Novellized Studio
+```bash
+npm run package:ide
+npm run package:installer
+```
+
+### 5. Debug with VS Code / VSCodium
 1. Open the `novellized-editor` directory in VS Code or VSCodium.
 2. Press **`F5`** (or go to Run & Debug and select **"Launch Novellized (Extension)"**).
 3. A clean **Extension Development Host** window will open.
-4. Press `Ctrl+Shift+P` and choose **"Novellized: ✨ Create New Novel Project..."** (or click the button in File Explorer) to test!
+4. Press `Ctrl+Shift+P` and choose **"Novellized: ✨ Create New Novel Project..."** to test!

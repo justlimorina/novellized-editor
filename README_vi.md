@@ -52,25 +52,41 @@ Trình soạn thảo trực tiếp (WYSIWYG Live Markdown Editor) dành riêng c
 ---
 
 ## Hướng dẫn Chạy Thử và Phát triển
-
+ 
 ### 1. Cài đặt Dependencies
 ```bash
-npm.cmd install
+npm install
 ```
 
 ### 2. Build Extension
 ```bash
-npm.cmd run build
+npm run build
 ```
 
 Hoặc chạy chế độ theo dõi thay đổi (Watch Mode):
 ```bash
-npm.cmd run watch
+npm run watch
 ```
 
-### 3. Debug trên VS Code / VSCodium
+### 3. Đóng gói Extension (.vsix)
+```bash
+npm run package:vsix
+# Cài đặt ngay vào VS Code:
+code --install-extension novellized-editor-0.1.0.vsix
+```
+
+### 4. Đóng gói Ứng dụng Độc lập Novellized Studio (Linux / Windows)
+```bash
+# Đóng gói IDE độc lập (tự động nhận diện Linux/Windows):
+npm run package:ide
+
+# Hoặc tạo file nén phát hành Portable:
+npm run package:installer
+```
+
+### 5. Debug trên VS Code / VSCodium
 1. Mở thư mục `novellized-editor` trong VS Code hoặc VSCodium.
 2. Bấm phím **`F5`** (hoặc vào tab Run & Debug chọn **"Launch Novellized (Extension)"**).
 3. Một cửa sổ **Extension Development Host** sẽ tự động mở ra.
-4. Bấm `Ctrl+Shift+P` và chọn **"Novellized: ✨ Create New Novel Project..."** (hoặc bấm nút trên thanh File Explorer) để bắt đầu!
+4. Bấm `Ctrl+Shift+P` và chọn **"Novellized: ✨ Create New Novel Project..."** để bắt đầu!
 

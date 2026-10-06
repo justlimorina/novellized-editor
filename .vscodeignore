@@ -1,0 +1,17 @@
+.vscode/**
+.vscode-test/**
+src/**
+scripts/**
+nbproject/**
+dist-ide/**
+.cache/**
+node_modules/**
+.git/**
+.gitignore
+tsconfig.json
+esbuild.config.mjs
+package-lock.json
+*.vsix
+Thumbs.db
+desktop.ini
+

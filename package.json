@@ -3,6 +3,7 @@
   "displayName": "Novellized Prose Editor",
   "description": "WYSIWYG Live Markdown Editor for Authors and Novelists in VS Code / VSCodium",
   "version": "0.1.0",
+  "license": "MIT",
   "publisher": "novellized",
   "engines": {
     "vscode": "^1.80.0"
@@ -450,6 +451,7 @@
     "compile": "tsc -noEmit",
     "watch": "node esbuild.config.mjs --watch",
     "build": "node esbuild.config.mjs --production",
+    "package:vsix": "vsce package --no-git-tag-version --allow-missing-repository",
     "package:ide": "node scripts/package-codium.mjs",
     "package:installer": "node scripts/build-installer.mjs",
     "package:all": "node scripts/package-codium.mjs && node scripts/build-installer.mjs"
@@ -470,6 +472,7 @@
     "@types/jszip": "^3.4.0",
     "@types/node": "^20.11.24",
     "@types/vscode": "^1.80.0",
+    "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.25.0",
     "pngjs": "^7.0.0",
     "rcedit": "^5.0.2",

@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { DatabaseSync } from 'node:sqlite';
-import { rcedit } from 'rcedit';
 import { generateAllIcons } from './generate-ico.mjs';
 
 
@@ -26,9 +25,22 @@ async function getLatestVSCodiumRelease() {
         throw new Error(`Failed to query VSCodium release: ${res.status} ${res.statusText}`);
     }
     const data = await res.json();
-    const asset = data.assets.find(a => /^VSCodium-win32-x64-.*\.zip$/i.test(a.name));
+    let assetPattern;
+    if (process.platform === 'win32') {
+        assetPattern = /^VSCodium-win32-x64-.*\.zip$/i;
+    } else if (process.platform === 'linux') {
+        const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
+        assetPattern = new RegExp(`^VSCodium-linux-${arch}-.*\\.tar\\.gz$`, 'i');
+    } else if (process.platform === 'darwin') {
+        const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
+        assetPattern = new RegExp(`^VSCodium-darwin-${arch}-.*\\.zip$`, 'i');
+    } else {
+        throw new Error(`Unsupported platform: ${process.platform}`);
+    }
+
+    const asset = data.assets.find(a => assetPattern.test(a.name));
     if (!asset) {
-        throw new Error('Could not find VSCodium-win32-x64-*.zip asset in latest release');
+        throw new Error(`Could not find VSCodium asset matching ${assetPattern} in latest release`);
     }
     return {
         version: data.tag_name,
@@ -76,7 +88,8 @@ async function main() {
     // 1. Generate Icons and Build Extension First
     generateAllIcons();
     console.log('\n1. Building Novellized Extension for production...');
-    execSync('npm.cmd run build', { stdio: 'inherit' });
+    const buildCmd = process.platform === 'win32' ? 'npm.cmd run build' : 'npm run build';
+    execSync(buildCmd, { stdio: 'inherit' });
 
     // 2. Fetch VSCodium
     const release = await getLatestVSCodiumRelease();
@@ -101,7 +114,11 @@ async function main() {
         }
         ensureDir(OUTPUT_DIR);
         console.log('Extracting archive...');
-        execSync(`tar -xf "${zipPath}" -C "${OUTPUT_DIR}"`, { stdio: 'inherit' });
+        if (zipPath.endsWith('.tar.gz') || zipPath.endsWith('.tgz')) {
+            execSync(`tar -xzf "${zipPath}" -C "${OUTPUT_DIR}"`, { stdio: 'inherit' });
+        } else {
+            execSync(`tar -xf "${zipPath}" -C "${OUTPUT_DIR}"`, { stdio: 'inherit' });
+        }
     } else {
         console.log(`\n2. Output directory already extracted: ${OUTPUT_DIR}`);
         console.log('Skipping extraction (use --clean to force re-extract).');
@@ -154,7 +171,10 @@ async function main() {
     if (fs.existsSync(workbenchMainJs)) {
         // Always restore pristine workbench.desktop.main.js from cache archive first to prevent corrupting re-runs
         try {
-            execSync(`tar -xf "${zipPath}" -C "${OUTPUT_DIR}" resources/app/out/vs/workbench/workbench.desktop.main.js`, { stdio: 'pipe' });
+            const restoreCmd = process.platform === 'win32'
+                ? `tar -xf "${zipPath}" -C "${OUTPUT_DIR}" resources/app/out/vs/workbench/workbench.desktop.main.js`
+                : `tar -xf "${zipPath}" -C "${OUTPUT_DIR}" --wildcards "*workbench.desktop.main.js"`;
+            execSync(restoreCmd, { stdio: 'pipe' });
             console.log('[OK] Restored pristine workbench.desktop.main.js from archive for patching');
         } catch (e) {
             console.warn('[WARN] Could not restore pristine workbench file, patching in-place:', e.message);
@@ -326,7 +346,7 @@ async function main() {
         },
         "editor.fontSize": 16,
         "editor.lineHeight": 28,
-        "editor.fontFamily": "Palatino Linotype, Georgia, 'Times New Roman', serif",
+        "editor.fontFamily": "'Noto Serif', 'Liberation Serif', 'DejaVu Serif', 'Palatino Linotype', Georgia, 'Times New Roman', serif",
         "editor.cursorBlinking": "smooth",
         "editor.cursorSmoothCaretAnimation": "on",
         "workbench.startupEditor": "welcomePage",
@@ -449,45 +469,128 @@ async function main() {
         console.log('[OK] product.json updated with Novellized Studio branding, configurationDefaults & checksums disabled');
     }
 
-    // 9. Rename Executable & Inject Native PE Resources (Icon & Metadata)
-    console.log('\n8. Finalizing Novellized executable & native PE resources...');
-    const oldExe = path.join(OUTPUT_DIR, 'VSCodium.exe');
-    const newExe = path.join(OUTPUT_DIR, 'Novellized.exe');
-    if (fs.existsSync(oldExe)) {
-        fs.renameSync(oldExe, newExe);
-        console.log('[OK] Executable renamed to Novellized.exe');
-    }
+    // 9. Rename Executable & Setup Application Launchers
+    console.log('\n8. Finalizing Novellized executable & platform launchers...');
+    let targetExePath = '';
 
-    if (fs.existsSync(newExe)) {
-        const icoPath = path.join(ROOT_DIR, 'resources', 'icon.ico');
-        if (fs.existsSync(icoPath)) {
-            console.log('Injecting native icon.ico and PE metadata into Novellized.exe...');
-            try {
-                await rcedit(newExe, {
-                    icon: icoPath,
-                    'version-string': {
-                        FileDescription: 'Novellized Studio',
-                        ProductName: 'Novellized Studio',
-                        CompanyName: 'Novellized',
-                        LegalCopyright: 'Copyright (C) 2026 Novellized',
-                        OriginalFilename: 'Novellized.exe',
-                        InternalName: 'Novellized'
-                    },
-                    'file-version': '0.1.0.0',
-                    'product-version': '0.1.0.0'
-                });
-                console.log('[OK] Injected custom icon.ico and PE metadata into Novellized.exe');
-            } catch (err) {
-                console.warn('[WARN] Could not inject native PE resources:', err.message);
+    if (process.platform === 'win32') {
+        const oldExe = path.join(OUTPUT_DIR, 'VSCodium.exe');
+        const newExe = path.join(OUTPUT_DIR, 'Novellized.exe');
+        targetExePath = newExe;
+        if (fs.existsSync(oldExe)) {
+            fs.renameSync(oldExe, newExe);
+            console.log('[OK] Executable renamed to Novellized.exe');
+        }
+
+        if (fs.existsSync(newExe)) {
+            const icoPath = path.join(ROOT_DIR, 'resources', 'icon.ico');
+            if (fs.existsSync(icoPath)) {
+                console.log('Injecting native icon.ico and PE metadata into Novellized.exe...');
+                try {
+                    const { rcedit } = await import('rcedit');
+                    await rcedit(newExe, {
+                        icon: icoPath,
+                        'version-string': {
+                            FileDescription: 'Novellized Studio',
+                            ProductName: 'Novellized Studio',
+                            CompanyName: 'Novellized',
+                            LegalCopyright: 'Copyright (C) 2026 Novellized',
+                            OriginalFilename: 'Novellized.exe',
+                            InternalName: 'Novellized'
+                        },
+                        'file-version': '0.1.0.0',
+                        'product-version': '0.1.0.0'
+                    });
+                    console.log('[OK] Injected custom icon.ico and PE metadata into Novellized.exe');
+                } catch (err) {
+                    console.warn('[WARN] Could not inject native PE resources:', err.message);
+                }
             }
         }
+    } else if (process.platform === 'linux') {
+        const oldBin = path.join(OUTPUT_DIR, 'codium');
+        const newBin = path.join(OUTPUT_DIR, 'novellized');
+        targetExePath = newBin;
+
+        if (fs.existsSync(oldBin)) {
+            fs.renameSync(oldBin, newBin);
+            console.log('[OK] Binary renamed to novellized');
+        } else if (!fs.existsSync(newBin)) {
+            // Check in bin/ if present
+            const subBin = path.join(OUTPUT_DIR, 'bin', 'codium');
+            if (fs.existsSync(subBin)) {
+                const newSubBin = path.join(OUTPUT_DIR, 'bin', 'novellized');
+                fs.renameSync(subBin, newSubBin);
+                targetExePath = newSubBin;
+                console.log('[OK] Binary renamed to bin/novellized');
+            }
+        }
+
+        if (fs.existsSync(targetExePath)) {
+            fs.chmodSync(targetExePath, 0o755);
+            console.log('[OK] Executable permissions set (chmod 755)');
+        }
+
+        // Copy icon for Linux desktop
+        const pngIcon = path.join(ROOT_DIR, 'resources', 'icon.png');
+        const destIcon = path.join(OUTPUT_DIR, 'novellized.png');
+        if (fs.existsSync(pngIcon)) {
+            fs.copyFileSync(pngIcon, destIcon);
+            console.log('[OK] App icon copied to novellized.png');
+        }
+
+        // Generate Desktop entry & quick-installer script
+        const desktopContent = `[Desktop Entry]
+Name=Novellized Studio
+Comment=Professional Literary Writing & Novel Development Environment
+GenericName=Novel Prose Editor
+Exec="${targetExePath}" %F
+Icon=${destIcon}
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=Office;WordProcessor;TextEditor;Publishing;
+MimeType=text/markdown;text/plain;
+`;
+        fs.writeFileSync(path.join(OUTPUT_DIR, 'novellized.desktop'), desktopContent, 'utf8');
+        console.log('[OK] Created novellized.desktop entry file');
+
+        const installMenuScript = `#!/usr/bin/env bash
+set -e
+APP_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+ICON_DIR="\$HOME/.local/share/icons/hicolor/256x256/apps"
+DESKTOP_DIR="\$HOME/.local/share/applications"
+
+mkdir -p "\$ICON_DIR" "\$DESKTOP_DIR"
+cp "\$APP_DIR/novellized.png" "\$ICON_DIR/novellized.png"
+
+cat <<EOF > "\$DESKTOP_DIR/novellized.desktop"
+[Desktop Entry]
+Name=Novellized Studio
+Comment=Professional Literary Writing & Novel Development Environment
+GenericName=Novel Prose Editor
+Exec="\$APP_DIR/novellized" %F
+Icon=novellized
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=Office;WordProcessor;TextEditor;Publishing;
+MimeType=text/markdown;text/plain;
+EOF
+
+chmod +x "\$DESKTOP_DIR/novellized.desktop"
+echo "[OK] Novellized Studio has been successfully added to your Linux Application Menu!"
+`;
+        const installScriptPath = path.join(OUTPUT_DIR, 'install-desktop-menu.sh');
+        fs.writeFileSync(installScriptPath, installMenuScript, { encoding: 'utf8', mode: 0o755 });
+        console.log('[OK] Created install-desktop-menu.sh helper script');
     }
 
     console.log('\n====================================================');
     console.log('   NOVELLIZED STUDIO IDE SUCCESSFULLY CREATED!      ');
     console.log('====================================================');
-    console.log(`Executable Path: ${newExe}`);
-    console.log('You can run Novellized.exe directly with ZERO telemetry and ZERO dependencies!\n');
+    console.log(`Executable Path: ${targetExePath || OUTPUT_DIR}`);
+    console.log('You can run Novellized Studio directly with ZERO telemetry and ZERO dependencies!\n');
 }
 
 main().catch(err => {
