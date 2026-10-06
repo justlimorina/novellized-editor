@@ -17,10 +17,12 @@ import { SnapshotManager } from './snapshotManager';
 import { WritingSprintManager } from './writingSprint';
 import { NovellizedSourceControl } from './novellizedSourceControl';
 import { SnapshotHistoryTreeProvider } from './snapshotHistoryTree';
+import { initUpdateChecker } from './updateChecker';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
     initExtensionGuard(context);
+    initUpdateChecker(context);
 
     // Automatically ensure Novellized Warm Parchment theme is active if using standard default themes
     try {

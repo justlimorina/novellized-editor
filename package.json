@@ -204,6 +204,11 @@
         "command": "novellized.compareSnapshotFile",
         "title": "Novellized: Compare File with Checkpoint",
         "icon": "$(git-compare)"
+      },
+      {
+        "command": "novellized.checkForUpdates",
+        "title": "Novellized: Check for Updates...",
+        "icon": "$(cloud-download)"
       }
     ],
     "menus": {
@@ -444,7 +449,17 @@
           }
         ]
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Novellized Prose Editor",
+      "properties": {
+        "novellized.checkForUpdates": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically check for Novellized updates on startup (once per day)."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "node esbuild.config.mjs --production",
