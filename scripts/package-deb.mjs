@@ -62,12 +62,18 @@ async function buildDeb() {
     const usrBinDir = path.join(STAGING_DIR, 'usr', 'bin');
     const applicationsDir = path.join(STAGING_DIR, 'usr', 'share', 'applications');
     const iconsDir = path.join(STAGING_DIR, 'usr', 'share', 'icons', 'hicolor', '256x256', 'apps');
+    const metainfoDir = path.join(STAGING_DIR, 'usr', 'share', 'metainfo');
+    const docDir = path.join(STAGING_DIR, 'usr', 'share', 'doc', 'novellized-studio');
+    const aptSourcesDir = path.join(STAGING_DIR, 'etc', 'apt', 'sources.list.d');
     const debianMetaDir = path.join(STAGING_DIR, 'DEBIAN');
 
     await ensureDir(optAppDir);
     await ensureDir(usrBinDir);
     await ensureDir(applicationsDir);
     await ensureDir(iconsDir);
+    await ensureDir(metainfoDir);
+    await ensureDir(docDir);
+    await ensureDir(aptSourcesDir);
     await ensureDir(debianMetaDir);
 
     // 4. Copy app files to /opt/novellized-studio (EXCLUDE portable 'data' folder for system-wide install)
@@ -115,8 +121,64 @@ MimeType=text/markdown;text/plain;
 `;
     fs.writeFileSync(path.join(applicationsDir, 'novellized.desktop'), desktopEntry, { encoding: 'utf8', mode: 0o644 });
 
-    // 8. DEBIAN/control
-    console.log('4. Generating DEBIAN/control manifest ...');
+    // 8. AppStream metainfo XML (enables GNOME Software / KDE Discover license, rating, and description)
+    console.log('4. Generating AppStream metainfo XML ...');
+    const metainfoContent = `<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.novellized.studio</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Novellized Studio</name>
+  <summary>WYSIWYG Live Markdown Editor and Novelist IDE</summary>
+  <description>
+    <p>
+      Novellized Studio is a distraction-free, professional literature writing and novel development environment.
+    </p>
+    <p>
+      It features a WYSIWYG live markdown editor, automated chapter management, story bible, git checkpoints, and zero telemetry.
+    </p>
+  </description>
+  <launchable type="desktop-id">novellized.desktop</launchable>
+  <url type="homepage">https://github.com/novellized/novellized-editor</url>
+  <url type="bugtracker">https://github.com/novellized/novellized-editor/issues</url>
+  <developer id="io.github.novellized">
+    <name>Novellized</name>
+  </developer>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="${VERSION}" date="${new Date().toISOString().split('T')[0]}">
+      <description>
+        <p>Novellized Studio ${VERSION} release.</p>
+      </description>
+    </release>
+  </releases>
+</component>
+`;
+    fs.writeFileSync(path.join(metainfoDir, 'io.github.novellized.studio.metainfo.xml'), metainfoContent, { encoding: 'utf8', mode: 0o644 });
+
+    // 9. Debian machine-readable copyright file (/usr/share/doc/novellized-studio/copyright)
+    console.log('5. Generating Debian copyright file ...');
+    const licenseSrc = path.join(ROOT_DIR, 'LICENSE');
+    const licenseText = fs.existsSync(licenseSrc) ? fs.readFileSync(licenseSrc, 'utf8') : 'MIT License';
+    const copyrightContent = `Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: novellized-studio
+Upstream-Contact: Novellized <contact@novellized.org>
+Source: https://github.com/novellized/novellized-editor
+
+Files: *
+Copyright: 2026-present Novellized
+           2018-present Peter Squicciarini and contributors
+           2015-present Microsoft Corporation
+License: MIT
+` + licenseText.split('\n').map(l => l ? ` ${l}` : ' .').join('\n');
+    fs.writeFileSync(path.join(docDir, 'copyright'), copyrightContent, { encoding: 'utf8', mode: 0o644 });
+
+    // 10. Package-tracked APT repository file (/etc/apt/sources.list.d/novellized.list)
+    const aptLine = 'deb [trusted=yes] https://novellized.github.io/apt stable main\n';
+    fs.writeFileSync(path.join(aptSourcesDir, 'novellized.list'), aptLine, { encoding: 'utf8', mode: 0o644 });
+
+    // 11. DEBIAN/control
+    console.log('6. Generating DEBIAN/control manifest ...');
     let totalSizeBytes = 0;
     function calcSize(dir) {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -137,14 +199,15 @@ Installed-Size: ${installedSizeKb}
 Maintainer: Novellized <contact@novellized.org>
 Depends: libgtk-3-0 | libgtk-3-0t64, libnotify4, libnss3, libxss1, xdg-utils, libsecret-1-0, libasound2 | libasound2t64
 Homepage: https://github.com/novellized/novellized-editor
+License: MIT
 Description: Novellized Studio - Novelist IDE
  Professional Literary Writing & Novel Development Environment.
  WYSIWYG Live Markdown Editor and Distraction-free IDE for Authors and Novelists.
 `;
     fs.writeFileSync(path.join(debianMetaDir, 'control'), controlContent, { encoding: 'utf8', mode: 0o644 });
 
-    // 9. DEBIAN/postinst (Auto-configure APT repository on install)
-    console.log('5. Generating DEBIAN/postinst script (Auto-register APT repo on install)...');
+    // 12. DEBIAN/postinst (Auto-configure APT repository on install)
+    console.log('7. Generating DEBIAN/postinst script (Auto-register APT repo on install)...');
     const postinstContent = `#!/bin/sh
 set -e
 
@@ -174,8 +237,8 @@ exit 0
     fs.writeFileSync(postinstPath, postinstContent, { encoding: 'utf8', mode: 0o755 });
     fs.chmodSync(postinstPath, 0o755);
 
-    // 10. DEBIAN/postrm (Clean up APT repository on uninstall)
-    console.log('6. Generating DEBIAN/postrm script (Clean up APT repo on uninstall)...');
+    // 13. DEBIAN/postrm (Clean up APT repository on uninstall)
+    console.log('8. Generating DEBIAN/postrm script (Clean up APT repo on uninstall)...');
     const postrmContent = `#!/bin/sh
 set -e
 
@@ -198,8 +261,8 @@ exit 0
     fs.writeFileSync(postrmPath, postrmContent, { encoding: 'utf8', mode: 0o755 });
     fs.chmodSync(postrmPath, 0o755);
 
-    // 11. Build .deb package via dpkg-deb
-    console.log(`7. Building ${debFileName} via dpkg-deb ...`);
+    // 14. Build .deb package via dpkg-deb
+    console.log(`9. Building ${debFileName} via dpkg-deb ...`);
     try {
         execSync(`dpkg-deb --build --root-owner-group "${STAGING_DIR}" "${debDest}"`, { stdio: 'inherit' });
         const stats = fs.statSync(debDest);
