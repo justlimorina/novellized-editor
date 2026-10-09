@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { countWords, extractSceneTitle } from './wordCount';
+import { CorkboardManager } from './corkboardProvider';
+import { getChapterMetadata, saveChapterMetadata } from './sceneMetadata';
 
 export type ManuscriptItemType = 'part' | 'chapter' | 'scene';
 
@@ -37,11 +40,113 @@ export class ManuscriptTreeItem extends vscode.TreeItem {
 }
 
 export class ManuscriptTreeProvider implements vscode.TreeDataProvider<ManuscriptTreeItem> {
+export class ManuscriptTreeProvider implements vscode.TreeDataProvider<ManuscriptTreeItem>, vscode.TreeDragAndDropController<ManuscriptTreeItem> {
+    dropMimeTypes = ['application/vnd.code.tree.novellizedmanuscript'];
+    dragMimeTypes = ['application/vnd.code.tree.novellizedmanuscript'];
+
     private _onDidChangeTreeData: vscode.EventEmitter<ManuscriptTreeItem | undefined | null | void> = new vscode.EventEmitter<ManuscriptTreeItem | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<ManuscriptTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
     public refresh(): void {
         this._onDidChangeTreeData.fire();
+    }
+
+    public async handleDrag(source: readonly ManuscriptTreeItem[], treeDataTransfer: vscode.DataTransfer, _token: vscode.CancellationToken): Promise<void> {
+        treeDataTransfer.set('application/vnd.code.tree.novellizedmanuscript', new vscode.DataTransferItem(source));
+    }
+
+    public async handleDrop(target: ManuscriptTreeItem | undefined, sources: vscode.DataTransfer, _token: vscode.CancellationToken): Promise<void> {
+        const transferItem = sources.get('application/vnd.code.tree.novellizedmanuscript');
+        if (!transferItem) return;
+        const sourceItems: ManuscriptTreeItem[] = transferItem.value;
+        if (!sourceItems || sourceItems.length === 0) return;
+        const dragged = sourceItems[0];
+        if (!dragged || !dragged.resourceUri || dragged.itemType !== 'scene') return;
+
+        let targetChapterUri: vscode.Uri | null = null;
+        let targetSceneFilename: string | null = null;
+
+        if (target) {
+            if (target.itemType === 'chapter') {
+                targetChapterUri = target.resourceUri;
+            } else if (target.itemType === 'scene') {
+                targetChapterUri = vscode.Uri.joinPath(target.resourceUri, '..');
+                targetSceneFilename = path.basename(target.resourceUri.fsPath);
+            }
+        }
+
+        if (!targetChapterUri) return;
+
+        const sourceChapterUri = vscode.Uri.joinPath(dragged.resourceUri, '..');
+        const draggedFilename = path.basename(dragged.resourceUri.fsPath);
+
+        // Case 1: Reordering within the same chapter
+        if (sourceChapterUri.fsPath.toLowerCase() === targetChapterUri.fsPath.toLowerCase()) {
+            if (!targetSceneFilename || targetSceneFilename === draggedFilename) return;
+
+            const entries = await this.readDirSafe(sourceChapterUri);
+            const sceneFiles = entries
+                .filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.md'))
+                .map(([name]) => name);
+            sceneFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+            const oldIdx = sceneFiles.indexOf(draggedFilename);
+            const targetIdx = sceneFiles.indexOf(targetSceneFilename);
+            if (oldIdx === -1 || targetIdx === -1) return;
+
+            sceneFiles.splice(oldIdx, 1);
+            sceneFiles.splice(targetIdx, 0, draggedFilename);
+
+            await CorkboardManager.reorderScenes(sourceChapterUri, sceneFiles);
+            this.refresh();
+            return;
+        }
+
+        // Case 2: Moving scene across different chapters
+        const fileContent = await vscode.workspace.fs.readFile(dragged.resourceUri);
+        const sourceMeta = await getChapterMetadata(sourceChapterUri);
+        const sceneMeta = sourceMeta.scenes?.[draggedFilename] || {};
+
+        if (sourceMeta.scenes && sourceMeta.scenes[draggedFilename]) {
+            delete sourceMeta.scenes[draggedFilename];
+            await saveChapterMetadata(sourceChapterUri, sourceMeta);
+        }
+        await vscode.workspace.fs.delete(dragged.resourceUri);
+
+        const targetEntries = await this.readDirSafe(targetChapterUri);
+        const targetSceneFiles = targetEntries
+            .filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.md'))
+            .map(([name]) => name);
+        targetSceneFiles.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+        const sceneNumbers = targetSceneFiles.map(name => {
+            const match = name.match(/^scene[-_](\d+)/i);
+            return match ? parseInt(match[1], 10) : 0;
+        });
+        const nextIdx = (sceneNumbers.length > 0 ? Math.max(...sceneNumbers) : 0) + 1;
+        const newFilename = `scene_${String(nextIdx).padStart(2, '0')}.md`;
+        const newUri = vscode.Uri.joinPath(targetChapterUri, newFilename);
+
+        await vscode.workspace.fs.writeFile(newUri, fileContent);
+
+        const targetMeta = await getChapterMetadata(targetChapterUri);
+        if (!targetMeta.scenes) targetMeta.scenes = {};
+        targetMeta.scenes[newFilename] = sceneMeta;
+        await saveChapterMetadata(targetChapterUri, targetMeta);
+
+        if (targetSceneFilename) {
+            targetSceneFiles.push(newFilename);
+            const targetIdx = targetSceneFiles.indexOf(targetSceneFilename);
+            const newFileIdx = targetSceneFiles.indexOf(newFilename);
+            if (targetIdx !== -1 && newFileIdx !== -1) {
+                targetSceneFiles.splice(newFileIdx, 1);
+                targetSceneFiles.splice(targetIdx, 0, newFilename);
+                await CorkboardManager.reorderScenes(targetChapterUri, targetSceneFiles);
+            }
+        }
+
+        this.refresh();
+        vscode.window.showInformationMessage(`Moved scene to ${path.basename(targetChapterUri.fsPath)}`);
     }
 
     getTreeItem(element: ManuscriptTreeItem): vscode.TreeItem {

@@ -92,6 +92,44 @@ export async function updateSceneMetadata(sceneUri: vscode.Uri, patch: Partial<S
  * Extracts character entities from docs/characters.md
  */
 export async function extractCharactersFromBible(rootUri: vscode.Uri): Promise<EntityInfo[]> {
+    const results: EntityInfo[] = [];
+
+    // 1. Scan modular character profiles in docs/characters/*.md
+    try {
+        const charDirUri = vscode.Uri.joinPath(rootUri, 'docs', 'characters');
+        const entries = await vscode.workspace.fs.readDirectory(charDirUri);
+        for (const [name, type] of entries) {
+            if (type === vscode.FileType.File && name.endsWith('.md')) {
+                try {
+                    const raw = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(charDirUri, name));
+                    const text = Buffer.from(raw).toString('utf8');
+                    let charName = name.replace(/\.md$/i, '').replace(/[-_]/g, ' ');
+                    let summary = 'Character';
+
+                    const nameMatch = text.match(/^(?:name|tên):\s*([^\n]+)/im) || text.match(/^#\s+([^\n]+)/m);
+                    if (nameMatch) {
+                        charName = nameMatch[1].trim();
+                    }
+                    const summaryMatch = text.match(/^(?:summary|role|tóm tắt|vai trò):\s*([^\n]+)/im);
+                    if (summaryMatch) {
+                        summary = summaryMatch[1].trim();
+                    } else {
+                        const firstPara = text.split('\n').map(l => l.trim()).find(l => l.length > 0 && !l.startsWith('#') && !l.startsWith('---'));
+                        if (firstPara) {
+                            summary = firstPara.slice(0, 100);
+                        }
+                    }
+
+                    results.push({
+                        name: charName,
+                        category: 'character',
+                        summary
+                    });
+                } catch { }
+            }
+        }
+    } catch { }
+
     const fileUri = vscode.Uri.joinPath(rootUri, 'docs', 'characters.md');
     try {
         const raw = await vscode.workspace.fs.readFile(fileUri);
@@ -149,8 +187,36 @@ export async function extractCharactersFromBible(rootUri: vscode.Uri): Promise<E
 
 /**
  * Extracts worldbuilding entities from docs/worldbuilding.md
+ * Extracts worldbuilding entities from docs/worldbuilding.md and docs/worldbuilding/*.md
  */
 export async function extractWorldbuildingFromBible(rootUri: vscode.Uri): Promise<EntityInfo[]> {
+    const results: EntityInfo[] = [];
+
+    // 1. Scan modular worldbuilding docs in docs/worldbuilding/*.md
+    try {
+        const loreDirUri = vscode.Uri.joinPath(rootUri, 'docs', 'worldbuilding');
+        const entries = await vscode.workspace.fs.readDirectory(loreDirUri);
+        for (const [name, type] of entries) {
+            if (type === vscode.FileType.File && name.endsWith('.md')) {
+                try {
+                    const raw = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(loreDirUri, name));
+                    const text = Buffer.from(raw).toString('utf8');
+                    let loreName = name.replace(/\.md$/i, '').replace(/[-_]/g, ' ');
+                    const headingMatch = text.match(/^#\s+([^\n]+)/m);
+                    if (headingMatch) {
+                        loreName = headingMatch[1].trim();
+                    }
+                    results.push({
+                        name: loreName,
+                        category: 'worldbuilding',
+                        summary: 'Setting / Lore'
+                    });
+                } catch { }
+            }
+        }
+    } catch { }
+
+    // 2. Scan consolidated docs/worldbuilding.md
     const fileUri = vscode.Uri.joinPath(rootUri, 'docs', 'worldbuilding.md');
     try {
         const raw = await vscode.workspace.fs.readFile(fileUri);
@@ -172,6 +238,7 @@ export async function extractWorldbuildingFromBible(rootUri: vscode.Uri): Promis
                 }
             }
         }
+    } catch { }
 
         const seen = new Set<string>();
         return results.filter(r => {
@@ -182,5 +249,97 @@ export async function extractWorldbuildingFromBible(rootUri: vscode.Uri): Promis
         });
     } catch {
         return [];
+    const seen = new Set<string>();
+    return results.filter(r => {
+        const lower = r.name.toLowerCase();
+        if (seen.has(lower)) return false;
+        seen.add(lower);
+        return true;
+    });
+}
+
+/**
+ * Compiles rich context bundle for the active scene into a prompt ready for AI assistants.
+ */
+export async function generateAiSceneContext(sceneUri: vscode.Uri): Promise<string> {
+    const rootUri = vscode.workspace.getWorkspaceFolder(sceneUri)?.uri || vscode.workspace.workspaceFolders?.[0]?.uri;
+    if (!rootUri) {
+        throw new Error('No novel workspace folder found.');
     }
+
+    // 1. Novel project metadata
+    let projectTitle = path.basename(rootUri.fsPath);
+    let author = 'Author';
+    try {
+        const raw = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(rootUri, '.novel', 'project.json'));
+        const pMeta = JSON.parse(Buffer.from(raw).toString('utf8'));
+        if (pMeta.title) projectTitle = pMeta.title;
+        if (pMeta.author) author = pMeta.author;
+    } catch { }
+
+    // 2. AI Rules and voice constraints
+    let aiRulesStr = 'Maintain consistent character voice, immersive sensory description, and avoid modern slang.';
+    try {
+        const raw = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(rootUri, '.novel', 'ai_rules.json'));
+        const rules = JSON.parse(Buffer.from(raw).toString('utf8'));
+        aiRulesStr = JSON.stringify(rules, null, 2);
+    } catch { }
+
+    // 3. Scene & Chapter details
+    const chapFolder = getChapterFolderUri(sceneUri);
+    const chapMeta = await getChapterMetadata(chapFolder);
+    const sceneMeta = await getSceneMetadata(sceneUri);
+
+    let sceneContent = '';
+    const openDoc = vscode.workspace.textDocuments.find(d => d.uri.fsPath === sceneUri.fsPath);
+    if (openDoc) {
+        sceneContent = openDoc.getText();
+    } else {
+        const raw = await vscode.workspace.fs.readFile(sceneUri);
+        sceneContent = Buffer.from(raw).toString('utf8');
+    }
+
+    const sceneTitle = sceneMeta.title || path.basename(sceneUri.fsPath).replace(/\.md$/i, '');
+    const chapTitle = chapMeta.title || path.basename(chapFolder.fsPath);
+
+    // 4. Detected characters in this scene
+    const allCharacters = await extractCharactersFromBible(rootUri);
+    const presentChars = allCharacters.filter(c => sceneContent.toLowerCase().includes(c.name.toLowerCase()));
+
+    const charListStr = presentChars.length > 0
+        ? presentChars.map(c => `- **${c.name}**: ${c.summary || 'Character'}`).join('\n')
+        : (allCharacters.slice(0, 5).map(c => `- **${c.name}**: ${c.summary || 'Character'}`).join('\n') || 'None recorded');
+
+    // 5. Construct master context prompt
+    return `# NOVEL CONTEXT & SCENE WRITING PROMPT
+
+## Master Novel Information
+- **Title**: ${projectTitle}
+- **Author**: ${author}
+- **Current Chapter**: ${chapTitle}
+- **Chapter Synopsis**: ${chapMeta.synopsis || 'N/A'}
+
+## Current Scene Specifications
+- **Scene**: ${sceneTitle}
+- **Status**: ${sceneMeta.status || 'draft'}
+- **Point of View (POV)**: ${sceneMeta.pov || 'Third Person Limited'}
+- **Scene Goal & Synopsis**: ${sceneMeta.synopsis || 'N/A'}
+
+## Characters in this Scene
+${charListStr}
+
+## Literary Voice & Directives (.novel/ai_rules.json)
+\`\`\`json
+${aiRulesStr}
+\`\`\`
+
+## Scene Draft:
+\`\`\`markdown
+${sceneContent.trim()}
+\`\`\`
+
+---
+### Request:
+Please analyze the scene above and help me continue or refine it. Stay strictly in-character, adhere to the narrative POV, and honor the established rules and literary style.
+`;
 }

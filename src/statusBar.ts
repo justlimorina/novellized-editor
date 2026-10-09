@@ -3,6 +3,7 @@ import { countWords } from './wordCount';
 
 export class WriterStatusBarManager implements vscode.Disposable {
     private goalItem: vscode.StatusBarItem;
+    private dailyGoalItem: vscode.StatusBarItem;
     private readingTimeItem: vscode.StatusBarItem;
     private activeChapterItem: vscode.StatusBarItem;
     private disposables: vscode.Disposable[] = [];
@@ -10,20 +11,36 @@ export class WriterStatusBarManager implements vscode.Disposable {
 
     constructor() {
         // 1. Word Count & Target Goal Status Bar Item
+        // 1. Total Word Count & Target Goal Status Bar Item
         this.goalItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         this.goalItem.command = 'novellized.setWordGoal';
         this.goalItem.tooltip = 'Click to set target word count';
         this.disposables.push(this.goalItem);
 
         // 2. Estimated Reading Time Status Bar Item
+        // 2. Daily Word Count Progress Item
+        this.dailyGoalItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99.5);
+        this.dailyGoalItem.command = 'novellized.setDailyWordGoal';
+        this.dailyGoalItem.tooltip = 'Daily Writing Goal: Click to change daily target';
+        this.disposables.push(this.dailyGoalItem);
+
+        // 3. Estimated Reading Time Status Bar Item
         this.readingTimeItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
         this.readingTimeItem.tooltip = 'Estimated reading time at 200 words per minute';
         this.disposables.push(this.readingTimeItem);
 
         // 3. Active Chapter / Scene Context
+        // 4. Active Chapter / Scene Context
         this.activeChapterItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 98);
         this.activeChapterItem.tooltip = 'Current Chapter & Scene';
         this.disposables.push(this.activeChapterItem);
+
+        // Register command for setting daily goal
+        this.disposables.push(
+            vscode.commands.registerCommand('novellized.setDailyWordGoal', async () => {
+                await this.setDailyWordGoal();
+            })
+        );
 
         // Listeners for real-time updates
         this.disposables.push(
@@ -57,6 +74,7 @@ export class WriterStatusBarManager implements vscode.Disposable {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
             this.goalItem.hide();
+            this.dailyGoalItem.hide();
             this.readingTimeItem.hide();
             this.activeChapterItem.hide();
             return;
@@ -68,6 +86,7 @@ export class WriterStatusBarManager implements vscode.Disposable {
             // Read .novel/project.json
             const projectConfig = await this.readProjectConfig(rootUri);
             const targetWordCount = projectConfig?.targetWordCount || 50000;
+            const dailyTarget = projectConfig?.dailyTargetWordCount || 1000;
             const title = projectConfig?.title || 'Novel';
 
             // Calculate total manuscript words
@@ -75,9 +94,21 @@ export class WriterStatusBarManager implements vscode.Disposable {
             const percent = targetWordCount > 0 ? ((totalWords / targetWordCount) * 100).toFixed(1) : '0.0';
 
             // Update Goal Item
+            // Update Total Goal Item
             this.goalItem.text = `$(target) ${totalWords.toLocaleString()} / ${targetWordCount.toLocaleString()} w (${percent}%)`;
             this.goalItem.tooltip = `Novel: ${title}\nProgress: ${totalWords.toLocaleString()} / ${targetWordCount.toLocaleString()} words (${percent}%)\nClick to edit word count goal.`;
+            this.goalItem.tooltip = `Novel: ${title}\nTotal Progress: ${totalWords.toLocaleString()} / ${targetWordCount.toLocaleString()} words (${percent}%)\nClick to edit word count goal.`;
             this.goalItem.show();
+
+            // Daily tracking
+            const wordsToday = await this.computeDailyWords(rootUri, totalWords);
+            const dailyPercent = dailyTarget > 0 ? Math.round((wordsToday / dailyTarget) * 100) : 0;
+            const isGoalMet = wordsToday >= dailyTarget;
+            const dailyIcon = isGoalMet ? '$(flame)' : '$(edit)';
+
+            this.dailyGoalItem.text = `${dailyIcon} Today: +${wordsToday.toLocaleString()} / ${dailyTarget.toLocaleString()} w (${dailyPercent}%)`;
+            this.dailyGoalItem.tooltip = `Daily Goal: ${wordsToday.toLocaleString()} / ${dailyTarget.toLocaleString()} words today (${dailyPercent}%)${isGoalMet ? '\n🎉 Daily target achieved!' : ''}\nClick to change daily goal.`;
+            this.dailyGoalItem.show();
 
             // Update Reading Time Item
             const readingMinutes = Math.ceil(totalWords / 200);
@@ -104,6 +135,62 @@ export class WriterStatusBarManager implements vscode.Disposable {
             }
         } catch {
             // Ignore error
+        }
+    }
+
+    private async computeDailyWords(rootUri: vscode.Uri, currentTotalWords: number): Promise<number> {
+        try {
+            const statsUri = vscode.Uri.joinPath(rootUri, '.novel', 'daily_stats.json');
+            const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+            let stats: { date?: string; startWords?: number } = {};
+
+            try {
+                const raw = await vscode.workspace.fs.readFile(statsUri);
+                stats = JSON.parse(Buffer.from(raw).toString('utf8'));
+            } catch { }
+
+            if (stats.date !== todayStr || typeof stats.startWords !== 'number') {
+                // New day: Record start words
+                stats = { date: todayStr, startWords: currentTotalWords };
+                const enc = new TextEncoder();
+                await vscode.workspace.fs.writeFile(statsUri, enc.encode(JSON.stringify(stats, null, 2)));
+                return 0;
+            }
+
+            return Math.max(0, currentTotalWords - stats.startWords);
+        } catch {
+            return 0;
+        }
+    }
+
+    public async setDailyWordGoal(): Promise<void> {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) return;
+        const rootUri = workspaceFolders[0].uri;
+
+        const projectConfig = (await this.readProjectConfig(rootUri)) || {};
+        const currentDaily = projectConfig.dailyTargetWordCount || 1000;
+
+        const input = await vscode.window.showInputBox({
+            title: 'Set Daily Word Goal',
+            prompt: 'Enter daily target words (e.g. 500, 1000, 1667 for NaNoWriMo)',
+            value: String(currentDaily),
+            validateInput: (val) => {
+                const num = parseInt(val, 10);
+                if (isNaN(num) || num <= 0) {
+                    return 'Please enter a valid positive number';
+                }
+                return null;
+            }
+        });
+
+        if (input !== undefined) {
+            const num = parseInt(input, 10);
+            projectConfig.dailyTargetWordCount = num;
+            const configUri = vscode.Uri.joinPath(rootUri, '.novel', 'project.json');
+            await vscode.workspace.fs.writeFile(configUri, new TextEncoder().encode(JSON.stringify(projectConfig, null, 2)));
+            this.update();
+            vscode.window.showInformationMessage(`Daily writing goal updated: ${num.toLocaleString()} words/day.`);
         }
     }
 

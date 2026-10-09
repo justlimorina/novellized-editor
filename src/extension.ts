@@ -18,6 +18,7 @@ import { WritingSprintManager } from './writingSprint';
 import { NovellizedSourceControl } from './novellizedSourceControl';
 import { SnapshotHistoryTreeProvider } from './snapshotHistoryTree';
 import { initUpdateChecker } from './updateChecker';
+import { generateAiSceneContext } from './sceneMetadata';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Novellized Prose Editor is now active.');
@@ -44,6 +45,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('novellized.manuscriptView', manuscriptProvider),
+        vscode.window.createTreeView('novellized.manuscriptView', {
+            treeDataProvider: manuscriptProvider,
+            dragAndDropController: manuscriptProvider,
+            canSelectMany: false
+        }),
         vscode.window.registerTreeDataProvider('novellized.projectStatsView', statsProvider),
         vscode.window.registerTreeDataProvider('novellized.bibleView', bibleProvider),
         vscode.window.registerTreeDataProvider('novellized.snapshotHistoryView', snapshotHistoryProvider),
@@ -222,6 +228,29 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('novellized.copyAiPrompt', async (uri?: vscode.Uri) => {
             await copyAiOrganizePrompt(uri);
+        }),
+        vscode.commands.registerCommand('novellized.copyAiSceneContext', async (item?: any) => {
+            let targetUri: vscode.Uri | undefined;
+            if (item instanceof vscode.Uri) {
+                targetUri = item;
+            } else if (item && 'resourceUri' in item) {
+                targetUri = item.resourceUri;
+            } else {
+                targetUri = vscode.window.activeTextEditor?.document.uri;
+            }
+
+            if (!targetUri || !targetUri.fsPath.endsWith('.md')) {
+                vscode.window.showWarningMessage('Please open or select a novel scene to copy AI writing context.');
+                return;
+            }
+
+            try {
+                const prompt = await generateAiSceneContext(targetUri);
+                await vscode.env.clipboard.writeText(prompt);
+                vscode.window.showInformationMessage('✨ Novel Context & Scene Prompt copied to clipboard! Paste directly into Claude, ChatGPT, or Copilot.');
+            } catch (err: any) {
+                vscode.window.showErrorMessage(`Failed to generate AI context: ${err.message}`);
+            }
         })
     );
 

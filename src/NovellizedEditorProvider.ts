@@ -181,6 +181,12 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
                 <button id="btn-toggle-dialogue" class="btn-toggle" title="Highlight Dialogue vs Narrative (Check Pacing)">
                     Dialogue: OFF
                 </button>
+                <button id="btn-toggle-find" class="btn-toggle" title="Find & Replace in Scene (Ctrl+F / Ctrl+H)">
+                    🔍 Find
+                </button>
+                <button id="btn-toggle-typography" class="btn-toggle" title="Typography & Reading View (Aa)">
+                    Aa
+                </button>
                 <button id="btn-take-snapshot" title="Take a Quick Snapshot of this Scene">
                     Snapshot
                 </button>
@@ -191,6 +197,65 @@ export class NovellizedEditorProvider implements vscode.CustomTextEditorProvider
         </div>
         <div class="editor-canvas">
             <div id="editor-container"></div>
+        </div>
+    </div>
+
+    <!-- Find & Replace Floating Panel -->
+    <div id="find-replace-bar" class="find-replace-bar" style="display: none;">
+        <div class="find-row">
+            <button type="button" id="btn-toggle-replace" class="find-btn-icon" title="Toggle Replace (Ctrl+H)">▾</button>
+            <input type="text" id="find-input" placeholder="Find in scene..." autocomplete="off" spellcheck="false" />
+            <span id="find-count" class="find-count">0/0</span>
+            <button type="button" id="btn-match-case" class="find-btn-icon" title="Match Case (Alt+C)">Aa</button>
+            <button type="button" id="btn-find-prev" class="find-btn-icon" title="Previous match (Shift+Enter)">▲</button>
+            <button type="button" id="btn-find-next" class="find-btn-icon" title="Next match (Enter)">▼</button>
+            <button type="button" id="btn-find-close" class="find-btn-icon" title="Close (Escape)">✕</button>
+        </div>
+        <div id="replace-row" class="replace-row" style="display: none;">
+            <span class="replace-spacer"></span>
+            <input type="text" id="replace-input" placeholder="Replace with..." autocomplete="off" spellcheck="false" />
+            <button type="button" id="btn-replace" class="find-btn-action" title="Replace current match">Replace</button>
+            <button type="button" id="btn-replace-all" class="find-btn-action" title="Replace all matches">All</button>
+        </div>
+    </div>
+
+    <!-- Typography Settings Popover -->
+    <div id="typography-popover" class="typography-popover" style="display: none;">
+        <div class="typography-header">Typography & View Settings</div>
+        <div class="typography-row">
+            <span class="typography-label">Font Size</span>
+            <div class="typography-options" id="opt-font-size">
+                <button type="button" data-val="15px">15</button>
+                <button type="button" data-val="17px">17</button>
+                <button type="button" data-val="18px">18</button>
+                <button type="button" data-val="20px">20</button>
+                <button type="button" data-val="22px">22</button>
+            </div>
+        </div>
+        <div class="typography-row">
+            <span class="typography-label">Width</span>
+            <div class="typography-options" id="opt-width">
+                <button type="button" data-val="680px">Compact</button>
+                <button type="button" data-val="780px">Standard</button>
+                <button type="button" data-val="920px">Wide</button>
+                <button type="button" data-val="100%">Full</button>
+            </div>
+        </div>
+        <div class="typography-row">
+            <span class="typography-label">Line Height</span>
+            <div class="typography-options" id="opt-line-height">
+                <button type="button" data-val="1.6">1.6</button>
+                <button type="button" data-val="1.85">1.85</button>
+                <button type="button" data-val="2.1">2.1</button>
+            </div>
+        </div>
+        <div class="typography-row">
+            <span class="typography-label">Font Style</span>
+            <div class="typography-options" id="opt-font-family">
+                <button type="button" data-val="serif">Serif</button>
+                <button type="button" data-val="sans">Sans</button>
+                <button type="button" data-val="mono">Mono</button>
+            </div>
         </div>
     </div>
 

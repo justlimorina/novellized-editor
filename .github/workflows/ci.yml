@@ -26,6 +26,9 @@ jobs:
       - name: Typecheck TypeScript
         run: npm run compile
 
+      - name: Run Unit Tests
+        run: npm test
+
       - name: Production Bundle
         run: npm run build
 

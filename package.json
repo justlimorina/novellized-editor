@@ -106,6 +106,11 @@
         "icon": "$(target)"
       },
       {
+        "command": "novellized.setDailyWordGoal",
+        "title": "Novellized: Set Daily Word Target",
+        "icon": "$(edit)"
+      },
+      {
         "command": "novellized.deleteScene",
         "title": "Novellized: Delete Scene",
         "icon": "$(trash)"
@@ -118,6 +123,11 @@
       {
         "command": "novellized.copyAiPrompt",
         "title": "Novellized: Copy AI Organization Prompt for Staged Document...",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "novellized.copyAiSceneContext",
+        "title": "Novellized: Copy AI Scene Context & Bible Prompt",
         "icon": "$(sparkle)"
       },
       {
@@ -221,6 +231,11 @@
         {
           "command": "novellized.openAsLiveView",
           "when": "resourceExtname == .md && activeCustomEditorId != 'novellized.editor'",
+          "group": "navigation"
+        },
+        {
+          "command": "novellized.copyAiSceneContext",
+          "when": "resourceExtname == .md",
           "group": "navigation"
         }
       ],
@@ -359,6 +374,11 @@
           "group": "navigation@2"
         },
         {
+          "command": "novellized.copyAiSceneContext",
+          "when": "view == novellized.manuscriptView && viewItem == scene",
+          "group": "inline@3"
+        },
+        {
           "command": "novellized.deleteScene",
           "when": "view == novellized.manuscriptView && viewItem == scene",
           "group": "9_cutcopypaste"
@@ -464,6 +484,7 @@
   "scripts": {
     "vscode:prepublish": "node esbuild.config.mjs --production",
     "compile": "tsc -noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.mjs",
     "watch": "node esbuild.config.mjs --watch",
     "build": "node esbuild.config.mjs --production",
     "package:vsix": "vsce package --no-git-tag-version --allow-missing-repository",

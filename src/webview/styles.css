@@ -423,3 +423,176 @@ body {
     font-size: 11px;
 }
 
+/* Find & Replace Floating Panel */
+.find-replace-bar {
+    position: fixed;
+    top: 48px;
+    right: 28px;
+    z-index: 1000;
+    background: var(--vscode-editorWidget-background, #252526);
+    border: 1px solid var(--vscode-editorWidget-border, rgba(128,128,128,0.35));
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: var(--ui-font);
+    font-size: 12px;
+}
+
+.find-row, .replace-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.find-replace-bar input {
+    background: var(--vscode-input-background, #3c3c3c);
+    color: var(--vscode-input-foreground, #cccccc);
+    border: 1px solid var(--vscode-input-border, rgba(128,128,128,0.25));
+    border-radius: 3px;
+    padding: 4px 8px;
+    font-size: 12px;
+    outline: none;
+    width: 170px;
+    font-family: var(--ui-font);
+}
+
+.find-replace-bar input:focus {
+    border-color: var(--vscode-focusBorder, #007acc);
+}
+
+.find-count {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground, #888);
+    min-width: 44px;
+    text-align: center;
+    user-select: none;
+}
+
+.find-btn-icon {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--vscode-foreground, #ccc);
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 3px 6px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.1s;
+}
+
+.find-btn-icon:hover {
+    background: var(--vscode-toolbar-hoverBackground, rgba(255,255,255,0.1));
+}
+
+.find-btn-icon.active {
+    background: var(--vscode-button-secondaryBackground, #3a3d41);
+    border-color: var(--vscode-focusBorder, #007acc);
+}
+
+.find-btn-action {
+    background: var(--vscode-button-secondaryBackground, #3a3d41);
+    color: var(--vscode-button-secondaryForeground, #fff);
+    border: 1px solid var(--vscode-button-border, transparent);
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 3px 8px;
+    font-size: 11px;
+}
+
+.find-btn-action:hover {
+    background: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
+.replace-spacer {
+    width: 20px;
+}
+
+/* Prose Search Match Highlights */
+.search-match {
+    background-color: rgba(234, 179, 8, 0.45);
+    border-radius: 2px;
+}
+
+.search-match-active {
+    background-color: rgba(249, 115, 22, 0.9);
+    color: #ffffff !important;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.7);
+}
+
+/* Typography Popover */
+.typography-popover {
+    position: fixed;
+    top: 48px;
+    right: 80px;
+    z-index: 1000;
+    background: var(--vscode-editorWidget-background, #252526);
+    border: 1px solid var(--vscode-editorWidget-border, rgba(128,128,128,0.35));
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 250px;
+    font-family: var(--ui-font);
+    font-size: 12px;
+}
+
+.typography-header {
+    font-weight: 600;
+    color: var(--vscode-foreground, #fff);
+    border-bottom: 1px solid var(--vscode-editorWidget-border, rgba(128,128,128,0.2));
+    padding-bottom: 6px;
+}
+
+.typography-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.typography-label {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground, #aaa);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.typography-options {
+    display: flex;
+    gap: 4px;
+    background: var(--vscode-input-background, #1e1e1e);
+    padding: 3px;
+    border-radius: 4px;
+}
+
+.typography-options button {
+    flex: 1;
+    background: transparent;
+    color: var(--vscode-foreground, #ccc);
+    border: none;
+    border-radius: 3px;
+    padding: 4px 6px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.typography-options button:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.06);
+}
+
+.typography-options button.active {
+    background: var(--vscode-button-background, #0e639c);
+    color: var(--vscode-button-foreground, #fff);
+    font-weight: 600;
+}
+
+

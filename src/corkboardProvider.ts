@@ -149,6 +149,7 @@ export class CorkboardManager {
     }
 
     private static async reorderScenes(chapterFolderUri: vscode.Uri, orderedFilenames: string[]): Promise<void> {
+    public static async reorderScenes(chapterFolderUri: vscode.Uri, orderedFilenames: string[]): Promise<void> {
         if (!orderedFilenames || orderedFilenames.length === 0) return;
 
         // Step 1: Read all scene contents and metadata into memory
