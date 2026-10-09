@@ -1,4 +1,3 @@
-import { Editor, Extension } from '@tiptap/core';
 import { Editor, Extension, InputRule } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
@@ -67,7 +66,6 @@ function savePreferences() {
         ...vscode.getState(),
         focusModeEnabled,
         typewriterEnabled,
-        dialogueHighlightEnabled
         dialogueHighlightEnabled,
         fontSizePref,
         widthPref,
@@ -131,11 +129,6 @@ function applyDialogueMode(enabled: boolean) {
     }
 }
 
-// Attach UI Event Listeners
-if (btnToggleRaw) {
-    btnToggleRaw.addEventListener('click', () => {
-        vscode.postMessage({ type: 'requestRawMode' });
-    });
 function applyTypography() {
     document.documentElement.style.setProperty('--max-content-width', widthPref);
 
@@ -177,9 +170,6 @@ function applyTypography() {
     savePreferences();
 }
 
-if (btnToggleFocus) {
-    btnToggleFocus.addEventListener('click', () => {
-        applyFocusMode(!focusModeEnabled);
 function updateStats(text: string) {
     if (!statsEl) return;
     const clean = text.trim();
@@ -214,6 +204,18 @@ function updateFindCount() {
     } else {
         findCountEl.textContent = `${activeMatchIdx + 1}/${searchMatches.length}`;
     }
+}
+
+function scrollToActiveMatch() {
+    if (!editor || activeMatchIdx < 0 || !searchMatches[activeMatchIdx]) return;
+    try {
+        const { from } = searchMatches[activeMatchIdx];
+        const coords = editor.view.coordsAtPos(from);
+        if (coords) {
+            const targetY = coords.top - window.innerHeight * 0.35;
+            window.scrollBy({ top: targetY, behavior: 'smooth' });
+        }
+    } catch { }
 }
 
 function updateSearchMatches() {
@@ -254,21 +256,6 @@ function updateSearchMatches() {
     updateFindCount();
     editor.view.dispatch(editor.state.tr.setMeta(searchPluginKey, true));
     scrollToActiveMatch();
-}
-
-if (btnToggleTypewriter) {
-    btnToggleTypewriter.addEventListener('click', () => {
-        applyTypewriterMode(!typewriterEnabled);
-function scrollToActiveMatch() {
-    if (!editor || activeMatchIdx < 0 || !searchMatches[activeMatchIdx]) return;
-    try {
-        const { from } = searchMatches[activeMatchIdx];
-        const coords = editor.view.coordsAtPos(from);
-        if (coords) {
-            const targetY = coords.top - window.innerHeight * 0.35;
-            window.scrollBy({ top: targetY, behavior: 'smooth' });
-        }
-    } catch { }
 }
 
 function findNext() {
@@ -356,6 +343,62 @@ function replaceAll() {
     updateSearchMatches();
 }
 
+// Attach UI Event Listeners
+if (btnToggleRaw) {
+    btnToggleRaw.addEventListener('click', () => {
+        vscode.postMessage({ type: 'requestRawMode' });
+    });
+}
+
+if (btnToggleFocus) {
+    btnToggleFocus.addEventListener('click', () => {
+        applyFocusMode(!focusModeEnabled);
+    });
+}
+
+if (btnToggleTypewriter) {
+    btnToggleTypewriter.addEventListener('click', () => {
+        applyTypewriterMode(!typewriterEnabled);
+    });
+}
+
+if (btnToggleDialogue) {
+    btnToggleDialogue.addEventListener('click', () => {
+        applyDialogueMode(!dialogueHighlightEnabled);
+    });
+}
+
+if (btnTakeSnapshot) {
+    btnTakeSnapshot.addEventListener('click', () => {
+        vscode.postMessage({ type: 'takeSnapshot' });
+    });
+}
+
+if (btnToggleTypography) {
+    btnToggleTypography.addEventListener('click', () => {
+        if (!typographyPopoverEl) return;
+        const isOpen = typographyPopoverEl.style.display === 'flex';
+        typographyPopoverEl.style.display = isOpen ? 'none' : 'flex';
+        btnToggleTypography.classList.toggle('active', !isOpen);
+    });
+}
+
+['opt-font-size', 'opt-width', 'opt-line-height', 'opt-font-family'].forEach(groupId => {
+    const el = document.getElementById(groupId);
+    if (!el) return;
+    el.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const val = btn.getAttribute('data-val');
+            if (!val) return;
+            if (groupId === 'opt-font-size') fontSizePref = val;
+            if (groupId === 'opt-width') widthPref = val;
+            if (groupId === 'opt-line-height') lineHeightPref = val;
+            if (groupId === 'opt-font-family') fontFamilyPref = val;
+            applyTypography();
+        });
+    });
+});
+
 // Find & Replace Event Listeners
 if (btnToggleFind) {
     btnToggleFind.addEventListener('click', () => {
@@ -369,9 +412,6 @@ if (btnToggleFind) {
     });
 }
 
-if (btnToggleDialogue) {
-    btnToggleDialogue.addEventListener('click', () => {
-        applyDialogueMode(!dialogueHighlightEnabled);
 if (btnFindClose) {
     btnFindClose.addEventListener('click', closeFindBar);
 }
@@ -392,9 +432,6 @@ if (btnMatchCase) {
     });
 }
 
-if (btnTakeSnapshot) {
-    btnTakeSnapshot.addEventListener('click', () => {
-        vscode.postMessage({ type: 'takeSnapshot' });
 if (btnToggleReplace) {
     btnToggleReplace.addEventListener('click', () => {
         if (!replaceRowEl) return;
@@ -403,22 +440,10 @@ if (btnToggleReplace) {
     });
 }
 
-// Initialize mode states
-applyFocusMode(focusModeEnabled);
-applyTypewriterMode(typewriterEnabled);
-applyDialogueMode(dialogueHighlightEnabled);
 if (btnReplace) {
     btnReplace.addEventListener('click', replaceCurrent);
 }
 
-function updateStats(text: string) {
-    if (!statsEl) return;
-    const cleanText = text.trim();
-    const words = cleanText.length === 0 ? 0 : cleanText.split(/\s+/).filter(Boolean).length;
-    const chars = cleanText.length;
-    const readingMinutes = Math.max(1, Math.ceil(words / 200));
-    const readingStr = words === 0 ? '0 min read' : `~${readingMinutes} min read`;
-    statsEl.textContent = `${words.toLocaleString()} words • ${chars.toLocaleString()} characters • ${readingStr}`;
 if (btnReplaceAll) {
     btnReplaceAll.addEventListener('click', replaceAll);
 }
@@ -454,6 +479,12 @@ if (replaceInputEl) {
         }
     });
 }
+
+// Initialize mode states
+applyFocusMode(focusModeEnabled);
+applyTypewriterMode(typewriterEnabled);
+applyDialogueMode(dialogueHighlightEnabled);
+applyTypography();
 
 // Search Decoration Extension
 const SearchHighlightExtension = Extension.create({

@@ -240,15 +240,6 @@ export async function extractWorldbuildingFromBible(rootUri: vscode.Uri): Promis
         }
     } catch { }
 
-        const seen = new Set<string>();
-        return results.filter(r => {
-            const lower = r.name.toLowerCase();
-            if (seen.has(lower)) return false;
-            seen.add(lower);
-            return true;
-        });
-    } catch {
-        return [];
     const seen = new Set<string>();
     return results.filter(r => {
         const lower = r.name.toLowerCase();

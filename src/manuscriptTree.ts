@@ -39,7 +39,6 @@ export class ManuscriptTreeItem extends vscode.TreeItem {
     }
 }
 
-export class ManuscriptTreeProvider implements vscode.TreeDataProvider<ManuscriptTreeItem> {
 export class ManuscriptTreeProvider implements vscode.TreeDataProvider<ManuscriptTreeItem>, vscode.TreeDragAndDropController<ManuscriptTreeItem> {
     dropMimeTypes = ['application/vnd.code.tree.novellizedmanuscript'];
     dragMimeTypes = ['application/vnd.code.tree.novellizedmanuscript'];

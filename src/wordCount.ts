@@ -3,7 +3,6 @@
  * Strips frontmatter, comments, and code blocks before counting.
  */
 export function countWords(text: string): number {
-    const clean = text.trim();
     if (!text) return 0;
 
     // 1. Strip YAML frontmatter (--- ... ---)
@@ -15,7 +14,6 @@ export function countWords(text: string): number {
 
     clean = clean.trim();
     if (!clean) return 0;
-    return clean.split(/\s+/).filter(Boolean).length;
 
     // Count CJK characters individually (Han characters, Hiragana, Katakana, Hangul)
     const cjkRegex = /[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]/g;
@@ -60,7 +58,6 @@ export function extractSceneTitle(content: string, fallback: string): string {
         if (trimmed.startsWith('#')) {
             const title = trimmed.replace(/^#+\s*/, '').trim();
             // Ignore lines that designate Chapter or Part (e.g. Chapter 1, Chương 1, Hồi 1, Part 1, Phần 1)
-            const isChapter = /^#+\s*(?:chapter|chương|hồi|act)\b/i.test(trimmed);
             const isChapter = /^#+\s*(?:chapter|chương|hồi|act|mục)\b/i.test(trimmed);
             const isPart = /^#+\s*(?:part|phần|volume|quyển)\s+\d+/i.test(trimmed);
             if (!isChapter && !isPart && title.length > 0) {
@@ -70,12 +67,9 @@ export function extractSceneTitle(content: string, fallback: string): string {
     }
 
     // 3. Fallback to clean filename: scene_01.md -> Scene 1
-    const cleanFallback = fallback.replace(/\.md$/i, '').replace(/^scene[-_]/i, 'Scene ').replace(/[-_]/g, ' ');
     const cleanFallback = fallback
         .replace(/\.md$/i, '')
         .replace(/^scene[-_](\d+)/i, (_, n) => `Scene ${parseInt(n, 10)}`)
         .replace(/[-_]/g, ' ');
     return cleanFallback;
 }
-
-
